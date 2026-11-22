@@ -1,0 +1,24 @@
+models:
+  - name: piece_voice_events
+    description: >
+      Each note or rest a voice plays, as written, one row per piece_id,
+      voice_id and event_index. A beats list shorter than the notes list
+      repeats from its start.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice, from 1.
+        data_tests: [not_null]
+      - name: pitch_spec
+        description: The pitch as written, such as C4, Bb3 or r for a rest.
+        data_tests: [not_null]
+      - name: duration_spec
+        description: The length as written, either a number of beats or a duration_aliases name.
+        data_tests: [not_null]

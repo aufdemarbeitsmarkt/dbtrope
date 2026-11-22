@@ -1,0 +1,24 @@
+models:
+  - name: piece_voices
+    description: >
+      Each voice of each piece, one row per piece_id and voice_id, with the
+      voice's YAML as JSON. A voice without a name is called voice_<n>.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id]
+    columns:
+      - name: piece_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('pieces')
+                field: piece_id
+      - name: voice_id
+        data_tests: [not_null]
+      - name: voice_index
+        description: The voice's position in the piece's voices list, from 1.
+        data_tests: [not_null]
+      - name: voice
+        description: The voice's YAML as JSON.

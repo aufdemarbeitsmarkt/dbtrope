@@ -3,7 +3,10 @@ select
     voice_id,
     event_index,
     midi_note,
-    (440 * pow(2, (midi_note - 69) / 12.0)) as frequency_hz,
+    frequency_hz,
+    start_beats,
+    duration_beats,
     start_seconds,
     duration_seconds
-from {{ ref('hello_sine_notes') }}
+from {{ ref('int_notes__pitched') }}
+where not is_rest

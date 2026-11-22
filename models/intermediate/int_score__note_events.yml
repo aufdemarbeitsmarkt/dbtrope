@@ -2,7 +2,8 @@ models:
   - name: int_score__note_events
     description: >
       The score. One row per sounding note, keyed by piece_id, voice_id and
-      event_index, with its pitch and its start and length in seconds.
+      event_index, with its pitch and its start and length in beats and
+      seconds. Rests are left out.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -28,6 +29,10 @@ models:
           - expression_is_true:
               arguments:
                 expression: "> 0"
+      - name: start_beats
+        data_tests: [not_null]
+      - name: duration_beats
+        data_tests: [not_null]
       - name: start_seconds
         data_tests:
           - not_null

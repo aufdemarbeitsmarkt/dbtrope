@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install deps parse check build test clean
+.PHONY: install registry parse check build test clean
 
 install: $(VENV)/.installed
 
@@ -14,7 +14,11 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-parse: install
+# Lists the pieces for base/pieces; see scripts/build_registry.py.
+registry: install
+	$(BIN)/python scripts/build_registry.py
+
+parse: registry
 	$(DBT) parse --target $(TARGET)
 
 check: parse
@@ -23,7 +27,7 @@ check: parse
 build: check
 	$(DBT) build --target $(TARGET)
 
-test: install
+test: registry
 	$(DBT) test --target $(TARGET)
 
 clean:

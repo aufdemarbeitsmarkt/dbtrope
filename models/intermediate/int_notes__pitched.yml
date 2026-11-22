@@ -1,0 +1,25 @@
+models:
+  - name: int_notes__pitched
+    description: >
+      Each note or rest with its pitch resolved, one row per piece_id,
+      voice_id and event_index. Rests have no midi_note or frequency_hz.
+      Frequencies are equal-tempered with A4 (MIDI 69) at 440 Hz.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index]
+      # a sounding note without a midi_note had a pitch_spec that isn't a note name
+      - expression_is_true:
+          arguments:
+            expression: "is_rest or midi_note is not null"
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        data_tests: [not_null]
+      - name: is_rest
+        data_tests: [not_null]
+      - name: midi_note
+        description: MIDI note number; 60 is middle C (C4).

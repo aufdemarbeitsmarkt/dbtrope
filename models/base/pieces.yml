@@ -1,0 +1,27 @@
+models:
+  - name: pieces
+    description: >
+      Every piece in the project, one row per piece_id, with its piece-wide
+      settings and the full score as JSON. Pieces are listed in
+      macros/registry.sql, which `make registry` writes.
+    columns:
+      - name: piece_id
+        description: The piece model's name.
+        data_tests: [unique, not_null]
+      - name: tempo_bpm
+        description: Quarter-note beats per minute. Defaults to 120.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: meter
+        description: Time signature as written, such as 3/4. Defaults to 4/4.
+      - name: beats_per_bar
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: score
+        description: The piece's YAML as JSON.

@@ -1,0 +1,60 @@
+models:
+  - name: int_events__timed
+    description: >
+      Each note or rest placed in time, one row per piece_id, voice_id and
+      event_index. A voice's events follow one another without gaps, so an
+      event starts when the previous one ends. Beats convert to seconds at
+      the piece's tempo.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        data_tests: [not_null]
+      - name: pitch_spec
+        data_tests: [not_null]
+      - name: start_beats
+        data_tests: [not_null]
+      - name: duration_beats
+        description: >
+          The duration_spec as a number of beats. Null means the spec was
+          neither a number nor a duration_aliases name, which fails the test.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: start_seconds
+        data_tests: [not_null]
+      - name: duration_seconds
+        data_tests: [not_null]
+
+unit_tests:
+  - name: events_follow_each_other_at_the_piece_tempo
+    model: int_events__timed
+    given:
+      - input: ref('piece_voice_events')
+        rows:
+          - {piece_id: p, voice_id: lead, event_index: 1, pitch_spec: C4, duration_spec: q}
+          - {piece_id: p, voice_id: lead, event_index: 2, pitch_spec: r, duration_spec: dotted_q}
+          - {piece_id: p, voice_id: lead, event_index: 3, pitch_spec: E4, duration_spec: "0.5"}
+          - {piece_id: p, voice_id: bass, event_index: 1, pitch_spec: C3, duration_spec: w}
+      - input: ref('duration_aliases')
+        rows:
+          - {duration_name: q, duration_beats: 1}
+          - {duration_name: dotted_q, duration_beats: 1.5}
+          - {duration_name: w, duration_beats: 4}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, tempo_bpm: 120}
+    expect:
+      rows:
+        - {voice_id: lead, event_index: 1, start_beats: 0, duration_beats: 1, start_seconds: 0, duration_seconds: 0.5}
+        - {voice_id: lead, event_index: 2, start_beats: 1, duration_beats: 1.5, start_seconds: 0.5, duration_seconds: 0.75}
+        - {voice_id: lead, event_index: 3, start_beats: 2.5, duration_beats: 0.5, start_seconds: 1.25, duration_seconds: 0.25}
+        - {voice_id: bass, event_index: 1, start_beats: 0, duration_beats: 4, start_seconds: 0, duration_seconds: 2}
