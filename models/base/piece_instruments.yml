@@ -1,0 +1,104 @@
+models:
+  - name: piece_instruments
+    description: >
+      Every instrument each piece uses, resolved, one row per piece_id and
+      instrument_name. An instrument the piece declares under instruments:
+      is inline, or an override when it has use: (starting from that stored
+      instrument and replacing only the keys it lists, down to single adsr
+      values). Any other name a voice uses is a stored instrument, used
+      as-is.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        description: The name voices use for the instrument in this piece.
+        data_tests: [not_null]
+      - name: instrument_source
+        description: inline, override or library.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [inline, library, override]
+      - name: library_instrument_name
+        description: The stored instrument it starts from, for override and library instruments.
+      - name: is_resolved
+        description: >
+          False when the stored instrument it names doesn't exist. The
+          failing rows name the piece and the instrument.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+      - name: partials
+        description: >
+          The instrument's harmonics as a JSON list of [frequency ratio,
+          amplitude] pairs. [1, 1] is the fundamental at full level.
+      - name: attack_seconds
+        description: Time to rise from silence to full level.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: decay_seconds
+        description: Time to fall from full level to the sustain level.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: sustain_level
+        description: Level held until the note ends, from 0 to 1.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 1"
+      - name: release_seconds
+        description: Time to fade to silence after the note ends. The note sounds this long past its written length.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: pan
+        description: Stereo position from -1 (left) to 1 (right).
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "between -1 and 1"
+      - name: lowest_note_name
+        description: The lowest note the instrument should play, if it has a range.
+      - name: highest_note_name
+        description: The highest note the instrument should play, if it has a range.
+
+unit_tests:
+  - name: declarations_override_stored_instruments_key_by_key
+    model: piece_instruments
+    given:
+      - input: ref('pieces')
+        format: sql
+        rows: |
+          select
+              'p' as piece_id,
+              '{"instruments": {"soft": {"use": "pad", "pan": -0.3, "adsr": {"r": 0.8}}, "bell": {"partials": [[1, 1], [2.76, 0.3]]}}}'::json as score
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, instrument_name: soft}
+          - {piece_id: p, instrument_name: bell}
+          - {piece_id: p, instrument_name: pad}
+          - {piece_id: p, instrument_name: missing}
+      - input: ref('instruments')
+        format: sql
+        rows: |
+          select
+              'pad' as instrument_name,
+              '{"partials": [[1, 0.5]], "adsr": {"a": 0.2, "d": 0.1, "s": 0.7, "r": 0.4}, "pan": 0, "range": ["C2", "C6"]}'::json as definition
+    expect:
+      rows:
+        # soft starts from pad and changes only pan and the release
+        - {instrument_name: soft, instrument_source: override, library_instrument_name: pad, is_resolved: true, attack_seconds: 0.2, sustain_level: 0.7, release_seconds: 0.8, pan: -0.3, lowest_note_name: C2}
+        # bell is defined in the piece; unset settings take the defaults
+        - {instrument_name: bell, instrument_source: inline, library_instrument_name: null, is_resolved: true, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}
+        - {instrument_name: pad, instrument_source: library, library_instrument_name: pad, is_resolved: true, attack_seconds: 0.2, sustain_level: 0.7, release_seconds: 0.4, pan: 0, lowest_note_name: C2}
+        - {instrument_name: missing, instrument_source: library, library_instrument_name: missing, is_resolved: false, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}

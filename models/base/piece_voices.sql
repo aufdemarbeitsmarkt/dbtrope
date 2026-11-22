@@ -29,5 +29,8 @@ select
     ) as pitch_list_count,
     coalesce((voice ->> 'octave')::integer, 4) as octave,
     coalesce((voice ->> 'transpose')::integer, 0) as transpose_semitones,
+    -- voices without an instrument play the stored sine instrument
+    coalesce(voice ->> 'instrument', 'sine') as instrument_name,
+    coalesce((voice ->> 'velocity')::integer, 100) as velocity,
     voice
 from unnested_voices

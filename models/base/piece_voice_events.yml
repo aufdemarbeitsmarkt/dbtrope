@@ -2,8 +2,8 @@ models:
   - name: piece_voice_events
     description: >
       Each note, scale degree, chord or rest a voice plays, as written, one row per piece_id,
-      voice_id and event_index. A beats list shorter than the notes list
-      repeats from its start.
+      voice_id and event_index. Beats and velocities lists shorter than the
+      pitch list repeat from their start.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -25,3 +25,10 @@ models:
       - name: duration_spec
         description: The length as written, either a number of beats or a duration_aliases name.
         data_tests: [not_null]
+      - name: velocity
+        description: The note's velocity, from the voice's velocities list or else its velocity.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"

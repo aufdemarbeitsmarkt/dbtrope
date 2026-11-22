@@ -1,10 +1,11 @@
 models:
   - name: mixed_samples
     description: >
-      The mixed signal. One row per piece_id and sample_index, at the
-      sample_rate var, from the first sample to the end of the last note.
-      Every note in a piece is summed, then the piece is normalised so its
-      loudest sample is 0.89.
+      The stereo mix. One row per piece_id and sample_index, at the
+      sample_rate var, from the first sample to the end of the last note's
+      release. Every partial of every note is enveloped, panned and summed,
+      then each piece is normalised so its loudest sample in either channel
+      is 0.89.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -15,8 +16,15 @@ models:
       - name: sample_index
         description: Position in the piece; divide by sample_rate for seconds.
         data_tests: [not_null]
-      - name: amplitude
-        description: Signal level between -1 and 1.
+      - name: left_amplitude
+        description: Left channel level between -1 and 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between -1 and 1"
+      - name: right_amplitude
+        description: Right channel level between -1 and 1.
         data_tests:
           - not_null
           - expression_is_true:
