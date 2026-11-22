@@ -69,12 +69,33 @@ summed_samples as (
         sample_index
 ),
 
-piece_lengths as (
+written_lengths as (
+    select
+        piece_id,
+        ceil(max(start_seconds + duration_seconds) * {{ sample_rate }})::bigint as sample_count
+    from {{ ref('int_events__timed') }}
+    group by piece_id
+),
+
+sounding_lengths as (
     select
         piece_id,
         (max(sample_index) + 1) as sample_count
     from summed_samples
     group by piece_id
+),
+
+-- a piece lasts until its last event ends, rests included, or its last release fades, whichever is later
+piece_lengths as (
+    select
+        written_lengths.piece_id,
+        greatest(
+            written_lengths.sample_count,
+            coalesce(sounding_lengths.sample_count, 0)
+        ) as sample_count
+    from written_lengths
+    left join sounding_lengths
+        on sounding_lengths.piece_id = written_lengths.piece_id
 ),
 
 -- rests and gaps between notes have no rows in summed_samples; all_samples fills them with silence
