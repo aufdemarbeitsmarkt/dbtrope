@@ -3,7 +3,8 @@ models:
     description: >
       Each note, scale degree, chord or rest a voice plays, as written, one row per piece_id,
       voice_id and event_index. Beats and velocities lists shorter than the
-      pitch list repeat from their start.
+      pitch list repeat from their start; an empty list counts as leaving it
+      out.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -32,3 +33,32 @@ models:
           - expression_is_true:
               arguments:
                 expression: "between 0 and 127"
+
+unit_tests:
+  - name: short_lists_repeat_and_empty_lists_are_unset
+    model: piece_voice_events
+    given:
+      - input: ref('piece_voices')
+        format: sql
+        rows: |
+          select
+              'p' as piece_id,
+              'cycling' as voice_id,
+              'notes' as pitch_kind,
+              100 as velocity,
+              '{"notes": ["C4", "D4", "E4"], "beats": ["q", "h"], "velocities": [90, 60]}'::json as voice
+          union all
+          select
+              'p' as piece_id,
+              'empty' as voice_id,
+              'notes' as pitch_kind,
+              70 as velocity,
+              '{"notes": ["C4", "D4"], "beats": [], "velocities": []}'::json as voice
+    expect:
+      rows:
+        - {voice_id: cycling, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 90}
+        - {voice_id: cycling, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 60}
+        - {voice_id: cycling, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 90}
+        # an empty list is the same as leaving it out: one beat, the voice's velocity
+        - {voice_id: empty, event_index: 1, pitch_spec: C4, duration_spec: "1", velocity: 70}
+        - {voice_id: empty, event_index: 2, pitch_spec: D4, duration_spec: "1", velocity: 70}
