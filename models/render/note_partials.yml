@@ -12,6 +12,10 @@ models:
       - unique_combination_of_columns:
           arguments:
             combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index, partial_index]
+      # a sample before the note's start would get a negative envelope level in mixed_samples
+      - expression_is_true:
+          arguments:
+            expression: "first_sample_index >= start_seconds * {{ var('sample_rate') }}"
     columns:
       - name: frequency_hz
         description: The note's frequency times the partial's frequency_ratio.
@@ -27,6 +31,7 @@ models:
       - name: right_gain
         data_tests: [not_null]
       - name: first_sample_index
+        description: The first sample at or after the note's start.
         data_tests: [not_null]
       - name: end_sample_index
         description: One past the last sample, after the release.
