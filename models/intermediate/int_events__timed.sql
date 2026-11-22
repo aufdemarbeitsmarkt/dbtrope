@@ -1,10 +1,3 @@
-{%- set voice_event_order %}
-    partition by
-        voice_events.piece_id,
-        voice_events.voice_id
-    order by voice_events.event_index
-{%- endset %}
-
 with voice_events as (
     select
         piece_events.piece_id,
@@ -36,11 +29,14 @@ events_with_start_beats as (
         voice_events.pitch_spec,
         voice_events.velocity,
         voice_events.duration_beats,
-        (
+        -- an event starts when the voice's earlier events have all ended
+        coalesce(
             sum(voice_events.duration_beats) over (
-                {{ voice_event_order }}
-            )
-            - voice_events.duration_beats
+                partition by voice_events.piece_id, voice_events.voice_id
+                order by voice_events.event_index
+                rows between unbounded preceding and 1 preceding
+            ),
+            0
         ) as start_beats
     from voice_events
 )

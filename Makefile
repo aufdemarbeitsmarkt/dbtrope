@@ -14,7 +14,7 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-# Lists the pieces for base/pieces; see scripts/build_registry.py.
+# Writes macros/registry.sql from the piece and instrument YAML; see scripts/build_registry.py.
 registry: install
 	$(BIN)/python scripts/build_registry.py
 

@@ -45,9 +45,10 @@ select
     pitched_notes.duration_beats,
     pitched_notes.start_seconds,
     pitched_notes.duration_seconds,
+    -- an instrument without a range can play every MIDI note
     (
-        pitched_notes.midi_note >= coalesce(instrument_ranges.lowest_midi_note, 0)
-        and pitched_notes.midi_note <= coalesce(instrument_ranges.highest_midi_note, 127)
+        pitched_notes.midi_note between coalesce(instrument_ranges.lowest_midi_note, 0)
+        and coalesce(instrument_ranges.highest_midi_note, 127)
     ) as is_in_instrument_range
 from pitched_notes
 join voice_instruments
