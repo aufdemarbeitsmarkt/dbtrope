@@ -17,6 +17,17 @@ MACROS = {"piece": "compose", "instrument": "instrument"}
 VALID_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
+def existing_resource(name: str) -> Path | None:
+    """The model or seed file already called `name`, if there is one."""
+    candidates = [
+        *(ROOT / "models").rglob(f"{name}.sql"),
+        *(ROOT / "models").rglob(f"{name}.py"),
+        *(ROOT / "models").rglob(f"{name}.yml"),
+        *(ROOT / "seeds").glob(f"{name}.csv"),
+    ]
+    return min(candidates, default=None)
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 3 or argv[1] not in MACROS or not VALID_NAME.match(argv[2]):
         print(__doc__.strip(), file=sys.stderr)
@@ -24,13 +35,15 @@ def main(argv: list[str]) -> int:
         return 1
 
     kind, name = argv[1], argv[2]
+    # dbt names must be unique across models and seeds, whatever their layer
+    taken_by = existing_resource(name)
+    if taken_by:
+        print(f"{taken_by.relative_to(ROOT)} already uses the name {name}", file=sys.stderr)
+        return 1
+
     directory = ROOT / "models" / f"{kind}s"
     yml_path = directory / f"{name}.yml"
     sql_path = directory / f"{name}.sql"
-    existing = [p for p in (yml_path, sql_path) if p.exists()]
-    if existing:
-        print(f"{existing[0].relative_to(ROOT)} already exists", file=sys.stderr)
-        return 1
 
     template = (ROOT / "templates" / f"{kind}.yml").read_text()
     # the template's header explains how to use the template; the new file doesn't need it
