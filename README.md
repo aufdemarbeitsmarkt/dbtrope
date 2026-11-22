@@ -17,6 +17,16 @@ Each piece is written to `output/<piece>.wav`. The `render_wav` table lists what
 
 ## Writing a piece
 
+The quickest start is a template:
+
+```sh
+make new-piece NAME=my_piece            # models/pieces/my_piece.yml and .sql
+make new-instrument NAME=my_instrument  # models/instruments/my_instrument.yml and .sql
+make build                              # registers it and writes output/my_piece.wav
+```
+
+The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`. `ditty` and `lullaby` in `models/pieces/` are the finished examples.
+
 A piece is a model in `models/pieces/`: a one-line `.sql` file and a `.yml` file holding the music under `config.meta`.
 
 ```sql
@@ -149,6 +159,8 @@ models/
 macros/                compose(), instrument(), the generated registry and helpers
 scripts/check_layers.py  enforces which layers may read which, and model naming
 scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML
+scripts/new_model.py   creates a piece or instrument from its template
+templates/             commented starting points for a piece and an instrument
 docs/sql_style.md      how SQL is written here
 ```
 

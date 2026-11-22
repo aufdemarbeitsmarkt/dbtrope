@@ -6,6 +6,7 @@ A dbt project that composes music. Pieces are written in YAML, turned into a sco
 
 - `make install`: create `.venv` and install dbt-duckdb
 - `make registry`: regenerate `macros/registry.sql` from `models/pieces/*.yml` and `models/instruments/*.yml`; run after adding, renaming or removing a piece or instrument (`make parse`, `check` and `build` run it first)
+- `make new-piece NAME=…`, `make new-instrument NAME=…`: create a piece or stored instrument from `templates/`
 - `make check`: `dbt parse`, then check layer and naming rules (`scripts/check_layers.py`)
 - `make build`: `make check`, then `dbt build`
 - `make build TARGET=ci`: build against an in-memory DuckDB, as CI does
