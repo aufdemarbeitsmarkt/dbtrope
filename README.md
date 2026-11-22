@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 3, YAML to score. Pieces are written in YAML with note names, beats and tempo, for any number of voices.
+> Status: milestone 4, theory. Pieces can be written in note names, scale degrees or Roman-numeral chords in any key and scale.
 
 ## Quick start
 
@@ -45,6 +45,34 @@ models:
 - **notes**: note names in scientific pitch notation (`C4` is middle C), with `#` or `b` for sharps and flats (`F#3`, `Bb4`). `r` is a rest.
 - **beats**: one length per note, as a number of beats or a name from `seeds/duration_aliases.csv` (`w`, `h`, `q`, `e`, `s`, `dotted_q`, `triplet_e`, …). A shorter list repeats from its start; leaving it out makes every note one beat.
 - Voices play at the same time; each voice's notes follow one another.
+
+### Keys, degrees and chords
+
+A voice can be written in scale degrees or chords instead of note names, relative to the piece's `key`:
+
+```yaml
+# models/pieces/lullaby.yml (meta)
+tempo: 96
+meter: 3/4
+key: {root: D, scale: dorian}
+voices:
+  - name: melody
+    octave: 4
+    degrees: [5, 4, 3, 2, 1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1]
+    beats: [h, q, q, q, q, h, q, dotted_h, h, q, q, q, q, h, q, dotted_h]
+  - name: chords
+    octave: 3
+    chords: [i, i, v, IV, i, IV, v7, i]
+    beats: [dotted_h]
+```
+
+- **key**: `root` is a pitch name and `scale` a name from `seeds/scales.csv` (`major`, `minor`, the modes, `harmonic_minor`, `major_pentatonic`, `minor_pentatonic`, `whole_tone`, `chromatic`). Defaults to C major.
+- **degrees**: `1` is the key's root in the voice's `octave`. Numbers past the scale continue upward (`8` is `1` an octave up in a seven-note scale); `0` and below continue downward. Put `#` or `b` in front to raise or lower by a semitone (`b7`, `#4`).
+- **chords**: Roman numerals `i` to `vii`, stacked in thirds within the scale, so the key decides each chord's quality (in D dorian `IV` is G major). Case is for the reader. A trailing `7` adds the seventh. Each chord becomes one row per chord tone.
+- **octave**: where degree `1` and chord roots sit. Defaults to 4 (middle C's octave).
+- **transpose**: semitones added to every pitch in the voice, for any kind of list.
+
+A voice uses exactly one of `notes`, `degrees` and `chords`.
 
 After adding, renaming or removing a piece, run `make build` (or `make registry`). dbt applies YAML after parsing SQL, so a model can't find the pieces by itself; `scripts/build_registry.py` reads the YAML and writes `macros/registry.sql`, which gives `base/pieces` a real `ref()` to each piece. The build fails if the registry is stale.
 

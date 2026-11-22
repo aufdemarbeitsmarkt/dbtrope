@@ -1,8 +1,9 @@
 models:
   - name: piece_voices
     description: >
-      Each voice of each piece, one row per piece_id and voice_id, with the
-      voice's YAML as JSON. A voice without a name is called voice_<n>.
+      Each voice of each piece, one row per piece_id and voice_id, with its
+      settings and its YAML as JSON. A voice without a name is called
+      voice_<n>.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -19,6 +20,26 @@ models:
         data_tests: [not_null]
       - name: voice_index
         description: The voice's position in the piece's voices list, from 1.
+        data_tests: [not_null]
+      - name: pitch_kind
+        description: Which list the voice is written in, notes, degrees or chords.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [chords, degrees, notes]
+      - name: pitch_list_count
+        description: How many of notes, degrees and chords the voice has; it must have exactly one.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= 1"
+      - name: octave
+        description: >
+          The octave that scale degree 1 and chord roots sit in. Defaults to
+          4, so degree 1 in C major is middle C. Ignored for note names.
+        data_tests: [not_null]
+      - name: transpose_semitones
+        description: Semitones added to every pitch in the voice. Defaults to 0.
         data_tests: [not_null]
       - name: voice
         description: The voice's YAML as JSON.

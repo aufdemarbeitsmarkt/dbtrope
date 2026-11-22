@@ -2,7 +2,7 @@ with voice_lists as (
     select
         piece_id,
         voice_id,
-        from_json(voice -> 'notes', '["varchar"]') as pitch_specs,
+        from_json(voice -> pitch_kind, '["varchar"]') as pitch_specs,
         coalesce(from_json(voice -> 'beats', '["varchar"]'), ['1']) as duration_specs
     from {{ ref('piece_voices') }}
 ),

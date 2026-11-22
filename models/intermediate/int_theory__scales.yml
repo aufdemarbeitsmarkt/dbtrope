@@ -1,0 +1,13 @@
+models:
+  - name: int_theory__scales
+    description: >
+      Each scale as a list, one row per scale_name. semitones_above_root[n]
+      is scale degree n's distance above the root, for n from 1 to
+      degree_count.
+    columns:
+      - name: scale_name
+        data_tests: [unique, not_null]
+      - name: semitones_above_root
+        data_tests: [not_null]
+      - name: degree_count
+        data_tests: [not_null]

@@ -2,6 +2,7 @@ select
     piece_id,
     voice_id,
     event_index,
+    chord_tone_index,
     midi_note,
     frequency_hz,
     start_beats,

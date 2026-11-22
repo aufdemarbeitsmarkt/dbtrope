@@ -4,5 +4,5 @@
 #}
 
 {% macro registered_pieces() %}
-    {{ return(['ditty']) }}
+    {{ return(['ditty', 'lullaby']) }}
 {% endmacro %}
