@@ -1,0 +1,29 @@
+models:
+  - name: int_instruments__ranged
+    description: >
+      Each piece's instruments with their envelope, pan and range in MIDI
+      notes, one row per piece_id and instrument_name. An instrument
+      without a range has null range columns and can play any note.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name]
+      # a range note name that isn't a real note name
+      - expression_is_true:
+          arguments:
+            expression: "(lowest_note_name is null or lowest_midi_note is not null) and (highest_note_name is null or highest_midi_note is not null)"
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: attack_seconds
+        data_tests: [not_null]
+      - name: decay_seconds
+        data_tests: [not_null]
+      - name: sustain_level
+        data_tests: [not_null]
+      - name: release_seconds
+        data_tests: [not_null]
+      - name: pan
+        data_tests: [not_null]

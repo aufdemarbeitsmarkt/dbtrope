@@ -41,5 +41,19 @@ models:
       - name: transpose_semitones
         description: Semitones added to every pitch in the voice. Defaults to 0.
         data_tests: [not_null]
+      - name: instrument_name
+        description: >
+          The instrument the voice plays: one declared under the piece's
+          instruments, or a stored instrument. Defaults to sine.
+        data_tests: [not_null]
+      - name: velocity
+        description: >
+          How hard the voice plays, from 0 to 127, like MIDI velocity.
+          Defaults to 100. A velocities list overrides it note by note.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
       - name: voice
         description: The voice's YAML as JSON.

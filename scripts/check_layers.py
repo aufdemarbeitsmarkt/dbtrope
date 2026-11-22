@@ -17,7 +17,8 @@ import sys
 from pathlib import Path
 
 ALLOWED_UPSTREAM = {
-    "pieces": {"seed"},
+    # a piece's depends_on lines point at the stored instruments it uses
+    "pieces": {"instruments", "seed"},
     "instruments": {"seed"},
     "base": {"pieces", "instruments", "base", "seed"},
     "intermediate": {"base", "intermediate", "seed"},
