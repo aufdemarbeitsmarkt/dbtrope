@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: make install
+
+      - name: Check the registry is up to date
+        run: |
+          make registry
+          git diff --exit-code macros/registry.sql
+
+      - name: Check layers and naming
+        run: make check TARGET=ci
+
+      - name: Build and test
+        run: make build TARGET=ci

@@ -1,0 +1,18 @@
+[project]
+name = "dbtrope"
+version = "0.1.0"
+description = "Compose music with a dbt project: YAML pieces, SQL synthesis in DuckDB, WAV output."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dbt-core>=1.10,<2",
+    "dbt-duckdb>=1.10,<2",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# dbtrope is a dbt project, not an importable package; pyproject only pins dependencies.
+packages = []

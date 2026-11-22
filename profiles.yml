@@ -1,0 +1,11 @@
+dbtrope:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBTROPE_DUCKDB_PATH', 'dbtrope.duckdb') }}"
+      threads: 4
+    ci:
+      type: duckdb
+      path: ":memory:"
+      threads: 4
