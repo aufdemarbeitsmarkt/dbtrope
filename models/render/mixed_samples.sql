@@ -69,7 +69,7 @@ piece_lengths as (
     group by piece_id
 ),
 
-{#- Rests and gaps between notes have no rows above; this fills them with silence. #}
+-- rests and gaps between notes have no rows in summed_samples; all_samples fills them with silence
 all_samples as (
     select
         piece_id,
