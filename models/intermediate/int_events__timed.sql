@@ -11,6 +11,7 @@ with voice_events as (
         piece_events.voice_id,
         piece_events.event_index,
         piece_events.pitch_spec,
+        piece_events.velocity,
         coalesce(
             duration_aliases.duration_beats,
             try_cast(piece_events.duration_spec as double)
@@ -33,6 +34,7 @@ events_with_start_beats as (
         voice_events.voice_id,
         voice_events.event_index,
         voice_events.pitch_spec,
+        voice_events.velocity,
         voice_events.duration_beats,
         (
             sum(voice_events.duration_beats) over (
@@ -48,6 +50,7 @@ select
     events_with_start_beats.voice_id,
     events_with_start_beats.event_index,
     events_with_start_beats.pitch_spec,
+    events_with_start_beats.velocity,
     events_with_start_beats.start_beats,
     events_with_start_beats.duration_beats,
     (events_with_start_beats.start_beats * 60 / piece_tempos.tempo_bpm) as start_seconds,

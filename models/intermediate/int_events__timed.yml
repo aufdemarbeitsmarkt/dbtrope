@@ -18,6 +18,8 @@ models:
         data_tests: [not_null]
       - name: pitch_spec
         data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
       - name: start_beats
         data_tests: [not_null]
       - name: duration_beats

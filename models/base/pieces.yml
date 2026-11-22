@@ -23,5 +23,21 @@ models:
           - expression_is_true:
               arguments:
                 expression: "> 0"
+      - name: key_root
+        description: The key's root as a pitch name, such as D or Bb. Defaults to C.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('pitch_classes')
+                field: pitch_name
+      - name: scale_name
+        description: The key's scale or mode, from the scales seed. Defaults to major.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('scales')
+                field: scale_name
       - name: score
         description: The piece's YAML as JSON.

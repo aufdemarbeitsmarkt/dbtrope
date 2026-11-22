@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 3, YAML to score. Pieces are written in YAML with note names, beats and tempo, for any number of voices.
+> Status: milestone 5, instruments. Pieces are written in note names, scale degrees or chords, played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
 
 ## Quick start
 
@@ -16,6 +16,16 @@ make build     # check layer rules, then dbt build
 Each piece is written to `output/<piece>.wav`. The `render_wav` table lists what was written.
 
 ## Writing a piece
+
+The quickest start is a template:
+
+```sh
+make new-piece NAME=my_piece            # models/pieces/my_piece.yml and .sql
+make new-instrument NAME=my_instrument  # models/instruments/my_instrument.yml and .sql
+make build                              # registers it and writes output/my_piece.wav
+```
+
+The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`. `ditty` and `lullaby` in `models/pieces/` are the finished examples.
 
 A piece is a model in `models/pieces/`: a one-line `.sql` file and a `.yml` file holding the music under `config.meta`.
 
@@ -46,14 +56,95 @@ models:
 - **beats**: one length per note, as a number of beats or a name from `seeds/duration_aliases.csv` (`w`, `h`, `q`, `e`, `s`, `dotted_q`, `triplet_e`, …). A shorter list repeats from its start; leaving it out makes every note one beat.
 - Voices play at the same time; each voice's notes follow one another.
 
-After adding, renaming or removing a piece, run `make build` (or `make registry`). dbt applies YAML after parsing SQL, so a model can't find the pieces by itself; `scripts/build_registry.py` reads the YAML and writes `macros/registry.sql`, which gives `base/pieces` a real `ref()` to each piece. The build fails if the registry is stale.
+### Keys, degrees and chords
+
+A voice can be written in scale degrees or chords instead of note names, relative to the piece's `key`:
+
+```yaml
+# models/pieces/lullaby.yml (meta)
+tempo: 96
+meter: 3/4
+key: {root: D, scale: dorian}
+voices:
+  - name: melody
+    octave: 4
+    degrees: [5, 4, 3, 2, 1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1]
+    beats: [h, q, q, q, q, h, q, dotted_h, h, q, q, q, q, h, q, dotted_h]
+  - name: chords
+    octave: 3
+    chords: [i, i, v, IV, i, IV, v7, i]
+    beats: [dotted_h]
+```
+
+- **key**: `root` is a pitch name and `scale` a name from `seeds/scales.csv` (`major`, `minor`, the modes, `harmonic_minor`, `major_pentatonic`, `minor_pentatonic`, `whole_tone`, `chromatic`). Defaults to C major.
+- **degrees**: `1` is the key's root in the voice's `octave`. Numbers past the scale continue upward (`8` is `1` an octave up in a seven-note scale); `0` and below continue downward. Put `#` or `b` in front to raise or lower by a semitone (`b7`, `#4`).
+- **chords**: Roman numerals `i` to `vii`, stacked in thirds within the scale, so the key decides each chord's quality (in D dorian `IV` is G major). Case is for the reader. A trailing `7` adds the seventh. Each chord becomes one row per chord tone.
+- **octave**: where degree `1` and chord roots sit. Defaults to 4 (middle C's octave).
+- **transpose**: semitones added to every pitch in the voice, for any kind of list.
+
+A voice uses exactly one of `notes`, `degrees` and `chords`.
+
+### Instruments
+
+An instrument is a set of harmonics and an envelope. Store one in `models/instruments/` to use it from any piece, the same way a piece is stored:
+
+```sql
+-- models/instruments/soft_pad.sql
+{{ instrument() }}
+```
+
+```yaml
+# models/instruments/soft_pad.yml
+models:
+  - name: soft_pad
+    description: A warm pad with a slow attack and a long release, for chords.
+    config:
+      meta:
+        partials: [[1, 0.5], [2, 0.25], [3, 0.12]]   # [frequency ratio, amplitude]
+        adsr: {a: 0.2, d: 0.1, s: 0.7, r: 0.4}       # seconds, seconds, level, seconds
+        range: [C2, C6]                              # optional
+        pan: 0                                       # -1 left to 1 right
+```
+
+The library has `sine` (the default for voices without an instrument), `pluck`, `soft_pad` and `warm_bass`.
+
+A voice names its instrument with `instrument:`. The name is looked up in this order:
+
+1. **Declared in the piece** under `instruments:`. With `use:`, it starts from that stored instrument and replaces only the keys given, down to single `adsr` values. Without `use:`, it is an inline instrument for that piece only.
+2. **Stored** in `models/instruments/`, used as-is.
+3. **Neither**: `dbt parse` fails, naming the piece and the missing instrument.
+
+```yaml
+# models/pieces/lullaby.yml (meta)
+instruments:
+  soft: {use: soft_pad, pan: -0.3, adsr: {r: 0.8}}   # stored, two settings changed
+  bell:                                              # inline, this piece only
+    partials: [[1, 0.6], [2.76, 0.3], [5.4, 0.1]]
+    adsr: {a: 0.005, d: 0.4, s: 0, r: 0.8}
+    pan: 0.3
+voices:
+  - {name: melody, instrument: bell, …}
+  - {name: chords, instrument: soft, velocity: 70, …}
+  - {name: bass, instrument: warm_bass, velocity: 85, …}   # stored, not declared
+```
+
+- **partials**: each harmonic's frequency as a multiple of the note's, and its level relative to the others. Levels are rescaled to sum to 1, so instruments are equally loud however many partials they have. Partials at or above half the sample rate are dropped.
+- **adsr**: attack, decay and release in seconds, sustain as a level from 0 to 1. The release starts when the note's written length ends, so notes ring on for `r` seconds.
+- **range**: a note outside it makes the build warn but still plays.
+- **velocity** (voice): 0 to 127, default 100. `velocities: [110, 80, 90, 80]` sets it note by note, repeating like `beats`.
+
+Each piece's stored instruments are upstream of it in lineage, so `dbt build -s soft_pad+` rebuilds and re-renders after changing `soft_pad`.
+
+After adding, renaming or removing a piece or instrument, run `make build` (or `make registry`). dbt applies YAML after parsing SQL, so a model can't find pieces or instruments by itself; `scripts/build_registry.py` reads the YAML and writes `macros/registry.sql`, which gives `base/pieces` and `base/instruments` a real `ref()` to each one and gives each piece `depends_on` lines for its stored instruments. The build fails if the list of pieces or instruments is stale, and CI checks the committed registry is current.
 
 ## How a note becomes sound
 
-1. `base/` flattens each piece's JSON into `pieces`, `piece_voices` and `piece_voice_events`. `int_events__timed` turns beats into start times and seconds; `int_notes__pitched` turns note names into MIDI numbers and frequencies.
-2. `int_score__note_events` holds the score: one row per note, with `frequency_hz`, `start_seconds` and `duration_seconds`.
-3. `mixed_samples` expands each note to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` with short fades at each end, sums every note by `sample_index`, fills gaps with silence and normalises each piece.
-4. `render_wav`, a dbt Python model, writes the samples as 16-bit PCM with the standard library's `wave` module.
+1. `base/` flattens each piece's JSON into `pieces`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
+2. `int_events__timed` turns beats into start times and seconds; `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies.
+3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
+4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
+5. `mixed_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains, sums everything by `sample_index`, fills gaps with silence and normalises each piece.
+6. `render_wav`, a dbt Python model, writes the samples as 16-bit stereo PCM with the standard library's `wave` module.
 
 ## Layout
 
@@ -65,9 +156,11 @@ models/
   base/                piece and instrument YAML flattened into rows
   intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
   render/              partials, mixed samples, effects, WAV output
-macros/                compose(), the generated piece registry and helpers
+macros/                compose(), instrument(), the generated registry and helpers
 scripts/check_layers.py  enforces which layers may read which, and model naming
-scripts/build_registry.py writes macros/registry.sql from the piece YAML
+scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML
+scripts/new_model.py   creates a piece or instrument from its template
+templates/             commented starting points for a piece and an instrument
 docs/sql_style.md      how SQL is written here
 ```
 

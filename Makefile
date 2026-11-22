@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install registry parse check build test clean
+.PHONY: install registry parse check build test clean new-piece new-instrument
 
 install: $(VENV)/.installed
 
@@ -29,6 +29,13 @@ build: check
 
 test: registry
 	$(DBT) test --target $(TARGET)
+
+# make new-piece NAME=my_piece, make new-instrument NAME=my_instrument
+new-piece: install
+	$(BIN)/python scripts/new_model.py piece $(NAME)
+
+new-instrument: install
+	$(BIN)/python scripts/new_model.py instrument $(NAME)
 
 clean:
 	$(DBT) clean

@@ -1,0 +1,31 @@
+models:
+  - name: piece_instrument_partials
+    description: >
+      The harmonics of each piece's instruments, one row per piece_id,
+      instrument_name and partial_index.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, partial_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: partial_index
+        description: The partial's position in the instrument's partials list, from 1.
+        data_tests: [not_null]
+      - name: frequency_ratio
+        description: The partial's frequency as a multiple of the note's; 1 is the fundamental.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: partial_amplitude
+        description: The partial's level relative to the instrument's other partials.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
