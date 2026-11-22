@@ -1,0 +1,22 @@
+# dbtrope
+
+A dbt project that composes music. Pieces are written in YAML, turned into a score with SQL, synthesized sample by sample in DuckDB, and written to WAV.
+
+## Commands
+
+- `make install`: create `.venv` and install dbt-duckdb
+- `make check`: `dbt parse`, then check layer and naming rules (`scripts/check_layers.py`)
+- `make build`: `make check`, then `dbt build`
+- `make build TARGET=ci`: build against an in-memory DuckDB, as CI does
+- `make clean`: remove `target/`, `output/` and local `.duckdb` files
+
+The dev database is `dbtrope.duckdb` in the project root; override with `DBTROPE_DUCKDB_PATH`. Rendered audio goes to `output/` (the `output_dir` var). The sample rate is the `sample_rate` var.
+
+## Rules
+
+- Write SQL following `docs/sql_style.md`. Read it before writing or editing a model.
+- Layers are directories under `models/`: `pieces/`, `instruments/`, `base/`, `intermediate/`, `render/`. The table in `docs/sql_style.md` says what each may read.
+- Only `intermediate/` models have a prefix: `int_{topic}__{transformation}`. Never use `stg_`. Other models are named for what they hold.
+- Jinja only serialises piece and instrument YAML to JSON. Music logic belongs in SQL.
+- Randomness must be deterministic: derive it from `hash()` of a seed and an index, never `random()`.
+- Every model gets a YAML `description:` stating its grain.

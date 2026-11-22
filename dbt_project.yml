@@ -1,0 +1,35 @@
+name: dbtrope
+version: "0.1.0"
+config-version: 2
+profile: dbtrope
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  # 22050 for drafts, 44100 for final renders
+  sample_rate: 22050
+  output_dir: output
+
+models:
+  dbtrope:
+    pieces:
+      +materialized: view
+      +tags: ["piece"]
+    instruments:
+      +materialized: view
+      +tags: ["instrument"]
+    base:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    render:
+      +materialized: table
