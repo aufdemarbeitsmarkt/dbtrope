@@ -1,0 +1,12 @@
+models:
+  - name: instruments
+    description: >
+      The stored instrument library, one row per instrument_name, with its
+      YAML as JSON. Instruments are listed in macros/registry.sql, which
+      `make registry` writes.
+    columns:
+      - name: instrument_name
+        description: The instrument model's name.
+        data_tests: [unique, not_null]
+      - name: definition
+        description: The instrument's YAML as JSON.

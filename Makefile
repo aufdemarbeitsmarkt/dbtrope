@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install deps parse check build test clean
+.PHONY: install registry parse check build test clean new-piece new-instrument
 
 install: $(VENV)/.installed
 
@@ -14,7 +14,11 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-parse: install
+# Lists the pieces for base/pieces; see scripts/build_registry.py.
+registry: install
+	$(BIN)/python scripts/build_registry.py
+
+parse: registry
 	$(DBT) parse --target $(TARGET)
 
 check: parse
@@ -23,8 +27,15 @@ check: parse
 build: check
 	$(DBT) build --target $(TARGET)
 
-test: install
+test: registry
 	$(DBT) test --target $(TARGET)
+
+# make new-piece NAME=my_piece, make new-instrument NAME=my_instrument
+new-piece: install
+	$(BIN)/python scripts/new_model.py piece $(NAME)
+
+new-instrument: install
+	$(BIN)/python scripts/new_model.py instrument $(NAME)
 
 clean:
 	$(DBT) clean

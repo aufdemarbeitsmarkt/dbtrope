@@ -1,0 +1,65 @@
+models:
+  - name: int_score__note_events
+    description: >
+      The score. One row per sounding tone, keyed by piece_id, voice_id,
+      event_index and chord_tone_index, with its instrument, pitch,
+      velocity, and start and length in beats and seconds. Rests are left
+      out.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        data_tests: [not_null]
+      - name: chord_tone_index
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: midi_note
+        description: MIDI note number; 60 is middle C.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
+      - name: frequency_hz
+        description: Equal-tempered frequency, with A4 (MIDI 69) at 440 Hz.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: velocity
+        description: How hard the note is played, from 0 to 127.
+        data_tests: [not_null]
+      - name: start_beats
+        data_tests: [not_null]
+      - name: duration_beats
+        data_tests: [not_null]
+      - name: start_seconds
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: duration_seconds
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: is_in_instrument_range
+        description: >
+          False when the note is outside its instrument's range. The note
+          still plays, so the test warns rather than fails.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+              config:
+                severity: warn

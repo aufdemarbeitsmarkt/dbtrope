@@ -1,0 +1,33 @@
+models:
+  - name: note_partials
+    description: >
+      Each sounding tone joined to its instrument's harmonics, one row per
+      piece_id, voice_id, event_index, chord_tone_index and partial_index,
+      with everything mixed_samples needs to synthesise it: frequency,
+      amplitude, envelope, stereo gains and the samples it covers. Partials
+      at or above half the sample rate are dropped.
+    config:
+      materialized: view
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index, partial_index]
+    columns:
+      - name: frequency_hz
+        description: The note's frequency times the partial's frequency_ratio.
+        data_tests: [not_null]
+      - name: amplitude
+        description: The partial's share of the instrument's level, times velocity / 127.
+        data_tests: [not_null]
+      - name: release_start_level
+        description: The envelope level at the end of the note's written length, where the release starts.
+        data_tests: [not_null]
+      - name: left_gain
+        data_tests: [not_null]
+      - name: right_gain
+        data_tests: [not_null]
+      - name: first_sample_index
+        data_tests: [not_null]
+      - name: end_sample_index
+        description: One past the last sample, after the release.
+        data_tests: [not_null]
