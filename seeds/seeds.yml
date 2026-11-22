@@ -1,0 +1,13 @@
+seeds:
+  - name: hello_sine_notes
+    description: >
+      A hand-written score for the hello_sine render test. One row per note,
+      keyed by piece_id, voice_id and event_index. Times are in seconds.
+    config:
+      column_types:
+        piece_id: varchar
+        voice_id: varchar
+        event_index: integer
+        midi_note: integer
+        start_seconds: double
+        duration_seconds: double

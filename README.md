@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: scaffolding. The project structure, tooling and CI are in place; models arrive in the next milestones.
+> Status: milestone 2, hello sine. A hand-written seed score renders to `output/hello_sine.wav`, proving the path from rows to audio.
 
 ## Quick start
 
@@ -13,7 +13,13 @@ make install   # create .venv and install dbt-duckdb
 make build     # check layer rules, then dbt build
 ```
 
-Rendered pieces will be written to `output/<piece>.wav`.
+Each piece is written to `output/<piece>.wav`. The `render_wav` table lists what was written.
+
+## How a note becomes sound
+
+1. `int_score__note_events` holds the score: one row per note, with `frequency_hz`, `start_seconds` and `duration_seconds`.
+2. `mixed_samples` expands each note to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` with short fades at each end, sums every note by `sample_index`, fills gaps with silence and normalises each piece.
+3. `render_wav`, a dbt Python model, writes the samples as 16-bit PCM with the standard library's `wave` module.
 
 ## Layout
 
