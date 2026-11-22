@@ -278,7 +278,7 @@ A model's layer is the first directory under `models/`. `make check` enforces th
 
 | Layer | Holds | May read |
 |---|---|---|
-| `pieces/` | One YAML-defined model per composition (`{{ compose() }}`) | seeds |
+| `pieces/` | One YAML-defined model per composition (`{{ compose() }}`) | instruments, seeds |
 | `instruments/` | One YAML-defined model per stored instrument (`{{ instrument() }}`) | seeds |
 | `base/` | Piece and instrument YAML flattened into rows | pieces, instruments, base, seeds |
 | `intermediate/` | Theory, form, transforms, timing, the score | base, intermediate, seeds |

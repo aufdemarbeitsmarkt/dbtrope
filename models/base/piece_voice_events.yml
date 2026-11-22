@@ -1,0 +1,34 @@
+models:
+  - name: piece_voice_events
+    description: >
+      Each note, scale degree, chord or rest a voice plays, as written, one row per piece_id,
+      voice_id and event_index. Beats and velocities lists shorter than the
+      pitch list repeat from their start.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice, from 1.
+        data_tests: [not_null]
+      - name: pitch_spec
+        description: >
+          The pitch as written: a note name (C4, Bb3), a scale degree (3,
+          b7, 8) or a chord (i, IV, v7), depending on the voice's
+          pitch_kind; r is a rest.
+        data_tests: [not_null]
+      - name: duration_spec
+        description: The length as written, either a number of beats or a duration_aliases name.
+        data_tests: [not_null]
+      - name: velocity
+        description: The note's velocity, from the voice's velocities list or else its velocity.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"

@@ -1,0 +1,9 @@
+models:
+  - name: pluck
+    description: A bright plucked tone that decays quickly, for melodies.
+    config:
+      meta:
+        partials: [[1, 0.6], [2, 0.3], [3, 0.15], [4, 0.08]]
+        adsr: {a: 0.005, d: 0.3, s: 0.2, r: 0.2}
+        range: [C3, C7]
+        pan: 0

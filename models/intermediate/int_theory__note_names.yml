@@ -1,0 +1,11 @@
+models:
+  - name: int_theory__note_names
+    description: >
+      Every spelled note name in MIDI range, one row per note_name (C4, C#4,
+      Db4, …), with its MIDI note. Octaves follow scientific pitch notation:
+      C4 is middle C, MIDI 60. Enharmonic spellings share a midi_note.
+    columns:
+      - name: note_name
+        data_tests: [unique, not_null]
+      - name: midi_note
+        data_tests: [not_null]

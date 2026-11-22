@@ -2,7 +2,7 @@ models:
   - name: render_wav
     description: >
       Writes each piece in mixed_samples to <output_dir>/<piece_id>.wav as
-      16-bit PCM, and records what it wrote. One row per piece.
+      16-bit stereo PCM, and records what it wrote. One row per piece.
     config:
       sample_rate: "{{ var('sample_rate') }}"
       output_dir: "{{ var('output_dir') }}"
@@ -17,6 +17,7 @@ models:
       - name: sample_rate
         data_tests: [not_null]
       - name: sample_count
+        description: Samples per channel.
         data_tests:
           - not_null
           - expression_is_true:

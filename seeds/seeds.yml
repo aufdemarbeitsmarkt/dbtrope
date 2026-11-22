@@ -1,13 +1,66 @@
 seeds:
-  - name: hello_sine_notes
+  - name: pitch_classes
     description: >
-      A hand-written score for the hello_sine render test. One row per note,
-      keyed by piece_id, voice_id and event_index. Times are in seconds.
+      Every spelling of a pitch class, one row per pitch_name (C, C#, Db, …).
+      semitones_from_c is the distance above C in the same octave number, so
+      Cb is -1 (Cb4 is B3) and B# is 12 (B#3 is C4).
     config:
       column_types:
-        piece_id: varchar
-        voice_id: varchar
-        event_index: integer
-        midi_note: integer
-        start_seconds: double
-        duration_seconds: double
+        pitch_name: varchar
+        semitones_from_c: integer
+    columns:
+      - name: pitch_name
+        data_tests: [unique, not_null]
+
+  - name: duration_aliases
+    description: >
+      Names a piece can use in place of a number of beats, one row per
+      duration_name: w, h, q, e and s for whole to sixteenth notes, with
+      dotted_ and triplet_ forms. A beat is a quarter note.
+    config:
+      column_types:
+        duration_name: varchar
+        duration_beats: double
+    columns:
+      - name: duration_name
+        data_tests: [unique, not_null]
+
+  - name: scales
+    description: >
+      The notes of each scale, one row per scale_name and scale_degree, as
+      semitones above the root. Ported from trope's Scale.names, with
+      trope's pentatonic renamed minor_pentatonic and whole renamed
+      whole_tone; adds ionian, aeolian, major_pentatonic and harmonic_minor.
+    config:
+      column_types:
+        scale_name: varchar
+        scale_degree: integer
+        semitones_above_root: integer
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [scale_name, scale_degree]
+    columns:
+      - name: scale_name
+        data_tests: [not_null]
+      - name: scale_degree
+        description: Position in the scale, from 1 (the root).
+        data_tests: [not_null]
+      - name: semitones_above_root
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 11"
+
+  - name: roman_numerals
+    description: >
+      Roman numerals for chords, one row per lowercase numeral, with the
+      scale degree of the chord's root.
+    config:
+      column_types:
+        numeral: varchar
+        scale_degree: integer
+    columns:
+      - name: numeral
+        data_tests: [unique, not_null]
