@@ -50,7 +50,7 @@ pitch_classes as (
     select
         pitch_name,
         semitones_from_c
-    from {{ ref('pitch_classes') }}
+    from {{ ref('seed_pitch_classes') }}
 ),
 
 scales as (
@@ -65,7 +65,7 @@ roman_numerals as (
     select
         numeral,
         scale_degree
-    from {{ ref('roman_numerals') }}
+    from {{ ref('seed_roman_numerals') }}
 ),
 
 events_in_context as (

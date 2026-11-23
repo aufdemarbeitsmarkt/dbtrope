@@ -85,7 +85,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('pitch_classes')
+                to: ref('seed_pitch_classes')
                 field: pitch_name
       - name: scale_name
         description: The key's scale or mode, from the scales seed. Defaults to major.
@@ -93,7 +93,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('scales')
+                to: ref('seed_scales')
                 field: scale_name
       - name: seed
         description: >
@@ -314,7 +314,7 @@ models:
           pitch_kind; r is a rest.
         data_tests: [not_null]
       - name: duration_spec
-        description: The length as written, either a number of beats or a duration_aliases name.
+        description: The length as written, either a number of beats or a seed_duration_aliases name.
         data_tests: [not_null]
       - name: velocity
         description: The note's velocity, from the voice's velocities list or else its velocity.

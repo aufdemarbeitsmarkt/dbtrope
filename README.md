@@ -135,7 +135,7 @@ voices:
 ```
 
 - **notes**: note names in scientific pitch notation (`C4` is middle C), with `#` or `b` for sharps and flats (`F#3`, `Bb4`). `r` is a rest.
-- **beats**: one length per note, as a number of beats or a name from `seeds/duration_aliases.csv` (`w`, `h`, `q`, `e`, `s`, `dotted_q`, `triplet_e`, …). A shorter list repeats from its start; leaving it out makes every note one beat.
+- **beats**: one length per note, as a number of beats or a name from `seeds/seed_duration_aliases.csv` (`w`, `h`, `q`, `e`, `s`, `dotted_q`, `triplet_e`, …). A shorter list repeats from its start; leaving it out makes every note one beat.
 - Voices play at the same time; each voice's notes follow one another.
 
 ### Keys, degrees and chords
@@ -158,7 +158,7 @@ voices:
     beats: [dotted_h]
 ```
 
-- **key**: `root` is a pitch name and `scale` a name from `seeds/scales.csv` (`major`, `minor`, the modes, `harmonic_minor`, `major_pentatonic`, `minor_pentatonic`, `whole_tone`, `chromatic`). Defaults to C major.
+- **key**: `root` is a pitch name and `scale` a name from `seeds/seed_scales.csv` (`major`, `minor`, the modes, `harmonic_minor`, `major_pentatonic`, `minor_pentatonic`, `whole_tone`, `chromatic`). Defaults to C major.
 - **degrees**: `1` is the key's root in the voice's `octave`. Numbers past the scale continue upward (`8` is `1` an octave up in a seven-note scale); `0` and below continue downward. Put `#` or `b` in front to raise or lower by a semitone (`b7`, `#4`).
 - **chords**: Roman numerals `i` to `vii`, stacked in thirds within the scale, so the key decides each chord's quality (in D dorian `IV` is G major). Case is for the reader. A trailing `7` adds the seventh. Each chord becomes one row per chord tone.
 - **octave**: where degree `1` and chord roots sit. Defaults to 4 (middle C's octave).
@@ -304,7 +304,7 @@ Pieces and instruments are plain YAML files, not dbt models: there's nothing to 
 ```
 pieces/                one .yml per composition
 instruments/           one .yml per stored instrument
-seeds/                 music theory reference tables
+seeds/                 seed_<name>.csv: music theory reference tables
 models/
   base/                theory tables from seeds; piece and instrument files read and flattened into rows
   intermediate/        int_{topic}__{transformation}: the steps that build the score
