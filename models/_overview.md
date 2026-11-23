@@ -10,8 +10,8 @@ and `output/<piece>.mid`.
 
 - **Pieces** are rows of `pieces`: one per file the build read, with its
   description, tempo, key and the whole file as JSON in `score`.
-  `piece_files` shows which files were read; `--vars '{piece: <name>}'`
-  builds just one.
+  `piece_files` shows which files were read; the build renders what the
+  piece var names (`--vars '{piece: nocturne}'`, or `all`).
 - **Instruments** are rows of `instruments`, one per file in
   `instruments/`. `piece_instruments` shows which instruments each piece
   uses and how each was resolved.

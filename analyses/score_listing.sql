@@ -4,10 +4,10 @@
 
         make score PIECE=nocturne
 
-    or every piece by leaving PIECE out.
+    or every built piece with PIECE=all or no PIECE.
 -#}
 {#- the piece var can be a name or a path to a .yml file; either way the piece's id is the file name #}
-{%- set piece = var('piece').split('/') | last | replace('.yaml', '') | replace('.yml', '') %}
+{%- set piece = (var('piece') or 'all').split('/') | last | replace('.yaml', '') | replace('.yml', '') %}
 
 with note_events as (
     select
@@ -23,7 +23,7 @@ with note_events as (
         start_beats,
         duration_beats
     from {{ ref('int_score__note_events') }}
-    {%- if piece %}
+    {%- if piece != 'all' %}
     where piece_id = '{{ piece }}'
     {%- endif %}
 ),

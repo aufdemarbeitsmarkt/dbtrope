@@ -14,7 +14,8 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-# make build PIECE=nocturne (or PIECE=path/to/piece.yml) renders one piece; leave PIECE out for every piece in pieces/.
+# make build PIECE=nocturne (or PIECE=path/to/piece.yml) renders one piece, PIECE=all every piece in pieces/.
+# dbt build stops without PIECE, so nothing renders every piece by accident (macros/require_piece.sql).
 PIECE_VARS := $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
 parse: install
@@ -34,7 +35,7 @@ docs: install
 	$(DBT) docs generate --target $(TARGET)
 	$(DBT) docs serve --target $(TARGET)
 
-# make score PIECE=nocturne lists a built piece's notes by bar and beat; leave PIECE out for every piece.
+# make score PIECE=nocturne lists a built piece's notes by bar and beat; PIECE=all or no PIECE for every built piece.
 score: install
 	$(DBT) show --select score_listing --target $(TARGET) --limit 1000 $(if $(PIECE),--vars '{piece: $(PIECE)}')
 

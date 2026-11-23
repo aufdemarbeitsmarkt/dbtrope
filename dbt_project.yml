@@ -21,8 +21,12 @@ vars:
   # where piece and stored instrument files are read from
   pieces_dir: pieces
   instruments_dir: instruments
-  # render one piece, by name or path to a .yml file: --vars '{piece: nocturne}'; empty renders every piece
-  piece: ""
+  # what to render: a piece name, a path to a .yml file, or all. dbt build and
+  # dbt run stop unless it's given: --vars '{piece: nocturne}' (see macros/require_piece.sql)
+  piece: null
+
+on-run-start:
+  - "{{ require_piece() }}"
 
 models:
   dbtrope:

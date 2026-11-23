@@ -5,9 +5,13 @@ import yaml
 
 
 def selected_paths(pieces_dir, piece):
-    """Every piece file in pieces_dir, or only the one the piece var names:
-    a piece name (nocturne) or a path to a .yml file anywhere."""
+    """The piece files the piece var names: every file in pieces_dir for
+    `all`, otherwise one piece, by name (nocturne) or by path to a .yml
+    file anywhere."""
     if not piece:
+        # macros/require_piece.sql normally stops the run before this
+        raise ValueError("set the piece var to a piece name, a path to a .yml file, or all")
+    if piece == "all":
         return sorted(pieces_dir.glob("*.yml"))
     path = Path(piece).expanduser()
     if path.suffix not in (".yml", ".yaml"):

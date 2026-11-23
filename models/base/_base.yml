@@ -5,13 +5,13 @@ models:
   - name: piece_files
     description: >
       The piece files the build reads, one row per piece_id, with each
-      file's YAML as JSON. Without the piece var, every .yml in the
-      pieces_dir var (pieces/); with it, only that piece, by name
-      (nocturne) or by path to a .yml file anywhere. A piece's id is its
+      file's YAML as JSON. The piece var chooses them: a piece name
+      (nocturne), a path to a .yml file anywhere, or all for every .yml in
+      the pieces_dir var (pieces/). dbt build stops if it isn't given. A piece's id is its
       file name.
     config:
       pieces_dir: "{{ var('pieces_dir') }}"
-      piece: "{{ var('piece') }}"
+      piece: "{{ var('piece') or '' }}"
     columns:
       - name: piece_id
         description: The file's name without .yml.

@@ -7,10 +7,9 @@ A dbt project that composes music. Pieces are YAML files in `pieces/`, turned in
 - `make install`: create `.venv` and install dbt-duckdb
 - `make new-piece NAME=…`, `make new-instrument NAME=…`: create `pieces/<name>.yml` or `instruments/<name>.yml` from `templates/`
 - `make check`: `dbt parse`, then check layer and naming rules (`scripts/check_layers.py`)
-- `make build`: `make check`, then `dbt build`, rendering every piece in `pieces/`
-- `make build PIECE=…`: render one piece, by name or path to a `.yml` file (`dbt build --vars '{piece: …}'`)
-- `make build TARGET=ci`: build against an in-memory DuckDB, as CI does
-- `make docs`: generate and serve dbt docs for every model, with lineage
+- `make build PIECE=…`: `make check`, then `dbt build --vars '{piece: …}'`, rendering one piece by name or path to a `.yml` file, or every piece in `pieces/` with `PIECE=all`. `dbt build` and `dbt run` stop without the piece var (`macros/require_piece.sql`), so nothing renders every piece by accident
+- `make build TARGET=ci PIECE=all`: build every piece against an in-memory DuckDB, as CI does
+- `make docs`: generate and serve dbt docs for every model, with lineage (no piece needed)
 - `make score PIECE=…`: list a built piece's notes by bar and beat (`analyses/score_listing.sql`)
 - `make clean`: remove `target/`, rendered WAV and MIDI files in `output/` and local `.duckdb` files
 

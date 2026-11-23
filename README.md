@@ -10,12 +10,12 @@ Requires Python 3.10+.
 
 ```sh
 make install   # create .venv and install dbt-duckdb
-make build     # check layer rules, then dbt build every piece in pieces/
-make build PIECE=nocturne            # just one piece
+make build PIECE=nocturne            # check layer rules, then build and render one piece
 make build PIECE=~/sketches/idea.yml # a piece file from anywhere
+make build PIECE=all                 # every piece in pieces/
 ```
 
-`make build PIECE=…` runs `dbt build --vars '{piece: …}'`; the var takes a piece name or a path to a `.yml` file. Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
+`make build PIECE=…` runs `dbt build --vars '{piece: …}'`; the var takes a piece name, a path to a `.yml` file, or `all`. It's required: `dbt build` and `dbt run` stop straight away without it, so a project with a hundred pieces never renders them all by accident. Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
 
 ## Tutorial: your first piece
 
@@ -116,7 +116,7 @@ The new piece uses every feature below, with a comment on each key, and renders 
 | `variations` | a theme played backwards, upside down, twice as fast and twice as slow |
 | `nocturne` | a markov-improvised melody, an inverted and an augmented theme, delay and reverb |
 
-Each is a `.yml` in `pieces/`; after `make build`, listen to `output/<piece>.wav`.
+Each is a `.yml` in `pieces/`; after `make build PIECE=<piece>` (or `PIECE=all`), listen to `output/<piece>.wav`.
 
 A piece is a YAML file in `pieces/`. The file's name is the piece's name, so `pieces/ditty.yml` renders to `output/ditty.wav`.
 
@@ -275,11 +275,11 @@ instruments:
 - Writing the key, even as `{}`, turns the effect on with its defaults. A piece's `delay: null` or `reverb: null` turns off a stored instrument's.
 - The piece lasts until the last echo or reflection fades.
 
-Every build reads the whole instrument library, so after changing an instrument, `make build` re-renders every piece with it. `piece_instruments` shows which pieces use which instruments.
+Every build reads the whole instrument library, so after changing an instrument, rebuild the pieces that use it. `piece_instruments` shows which pieces use which instruments.
 
 ### How files get into the build
 
-Pieces and instruments are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Two Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads every `.yml` in the `pieces_dir` var, or just the one the `piece` var names, and `instruments` reads every `.yml` in the `instruments_dir` var. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
+Pieces and instruments are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Two Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads the piece the `piece` var names, or every `.yml` in the `pieces_dir` var for `piece: all`, and `instruments` reads every `.yml` in the `instruments_dir` var. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
 
 ## How a note becomes sound
 
@@ -324,7 +324,7 @@ docs/sql_style.md      how SQL is written here
 | DuckDB file | `DBTROPE_DUCKDB_PATH` env var | `dbtrope.duckdb` |
 | Sample rate | `sample_rate` var | `22050` (use `44100` for final renders) |
 | Output folder | `output_dir` var | `output` |
-| Piece to render | `piece` var: a name or a path to a `.yml` file | empty: every piece in `pieces_dir` |
+| Piece to render | `piece` var: a name, a path to a `.yml` file, or `all` | none: required by `dbt build` and `dbt run` |
 | Piece folder | `pieces_dir` var | `pieces` |
 | Instrument folder | `instruments_dir` var | `instruments` |
 
