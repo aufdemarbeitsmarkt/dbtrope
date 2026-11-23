@@ -1,0 +1,109 @@
+models:
+  - name: int_events__improvised
+    description: >
+      Each event a voice plays after improvisation, one row per piece_id,
+      section_name, voice_id and event_index. A voice without improv: plays
+      as written. A permutation plays the written pitches in an order set by
+      the seed; a markov walk starts on the first written pitch and steps to
+      a pitch that followed the current one in the written line, chosen by
+      the seed. Either way the voice keeps its written rhythm and velocities
+      event by event, repeating them if the walk is longer.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's improvised line, from 1.
+        data_tests: [not_null]
+      - name: pitch_spec
+        data_tests: [not_null]
+      - name: duration_spec
+        data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
+
+unit_tests:
+  - name: markov_walks_restart_from_the_first_pitch_at_a_dead_end
+    model: int_events__improvised
+    description: Each written pitch here has one successor, so the walk doesn't depend on the seed.
+    given:
+      - input: ref('piece_voice_events')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 100}
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 80}
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 60}
+          - {piece_id: p, section_name: a, voice_id: as_written, event_index: 1, pitch_spec: G4, duration_spec: w, velocity: 90}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: walker, improv_method: markov, improv_length: 5, improv_seed: 0}
+          - {piece_id: p, section_name: a, voice_id: as_written, improv_method: null, improv_length: null, improv_seed: 0}
+    expect:
+      rows:
+        # E4 has nothing after it, so the walk goes back to C4; the rhythm repeats every three events
+        - {voice_id: walker, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 100}
+        - {voice_id: walker, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 80}
+        - {voice_id: walker, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 60}
+        - {voice_id: walker, event_index: 4, pitch_spec: C4, duration_spec: q, velocity: 100}
+        - {voice_id: walker, event_index: 5, pitch_spec: D4, duration_spec: h, velocity: 80}
+        - {voice_id: as_written, event_index: 1, pitch_spec: G4, duration_spec: w, velocity: 90}
+
+  - name: the_same_seed_improvises_the_same_line
+    model: int_events__improvised
+    description: >
+      Pins the lines seed 42 gives. If this fails after upgrading DuckDB,
+      hash() has changed, and every improvised piece will sound different.
+    given:
+      - input: ref('piece_voice_events')
+        format: sql
+        rows: |
+          select
+              'zz_improv' as piece_id,
+              'main' as section_name,
+              'shuffled' as voice_id,
+              event_index,
+              ['C4', 'D4', 'E4', 'F4', 'G4', 'r'][event_index] as pitch_spec,
+              'q' as duration_spec,
+              100 as velocity
+          from range(1, 7) as events(event_index)
+          union all
+          select
+              'zz_improv' as piece_id,
+              'main' as section_name,
+              'walker' as voice_id,
+              event_index,
+              ['1', '2', '3', '1', '3', '5', '3', '2', '1'][event_index] as pitch_spec,
+              'q' as duration_spec,
+              100 as velocity
+          from range(1, 10) as events(event_index)
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: zz_improv, section_name: main, voice_id: shuffled, improv_method: permutation, improv_length: null, improv_seed: 42}
+          - {piece_id: zz_improv, section_name: main, voice_id: walker, improv_method: markov, improv_length: 12, improv_seed: 42}
+    expect:
+      rows:
+        - {voice_id: shuffled, event_index: 1, pitch_spec: G4}
+        - {voice_id: shuffled, event_index: 2, pitch_spec: D4}
+        - {voice_id: shuffled, event_index: 3, pitch_spec: r}
+        - {voice_id: shuffled, event_index: 4, pitch_spec: F4}
+        - {voice_id: shuffled, event_index: 5, pitch_spec: E4}
+        - {voice_id: shuffled, event_index: 6, pitch_spec: C4}
+        # every step follows a transition in the written line: 3 to 2, 5 to 3, 3 to 1 and so on
+        - {voice_id: walker, event_index: 1, pitch_spec: "1"}
+        - {voice_id: walker, event_index: 2, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 3, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 4, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 5, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 6, pitch_spec: "5"}
+        - {voice_id: walker, event_index: 7, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 8, pitch_spec: "5"}
+        - {voice_id: walker, event_index: 9, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 10, pitch_spec: "1"}
+        - {voice_id: walker, event_index: 11, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 12, pitch_spec: "1"}

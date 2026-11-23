@@ -44,5 +44,10 @@ models:
               arguments:
                 to: ref('scales')
                 field: scale_name
+      - name: seed
+        description: >
+          Seeds the piece's improvised voices, so the same seed always
+          gives the same piece. Defaults to 0.
+        data_tests: [not_null]
       - name: score
         description: The piece's YAML as JSON.

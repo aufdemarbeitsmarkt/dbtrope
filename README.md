@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 6, form and transforms. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
+> Status: milestone 7, improvisation. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
 
 ## Quick start
 
@@ -116,6 +116,28 @@ form: [verse, bridge, verse]
 
 Each transform is a key of its own, so the order they are written in doesn't matter. A piece written with top-level `voices` and no `sections`, like `ditty` and `lullaby`, is one section.
 
+### Improvisation
+
+A voice can improvise on its written pitches:
+
+```yaml
+# meta
+seed: 7
+voices:
+  - name: walker
+    degrees: [1, 2, 3, 1, 3, 5, 3, 2, 1]
+    beats: [q, q, h]
+    improv: {method: markov, length: 16}
+  - name: shuffled
+    notes: [C4, E4, G4, B4]
+    improv: {method: permutation}
+```
+
+- **markov**: starts on the first written pitch, then steps each time to a pitch that followed the current one somewhere in the written line. A pitch that follows more often is chosen more often. If the walk reaches a pitch nothing followed, it starts again from the first pitch. `length` is the number of events; it defaults to the number written.
+- **permutation**: plays the written pitches, rests included, in a shuffled order.
+- Either way the voice keeps its written rhythm and velocities event by event, repeating them if the walk is longer. Improvisation happens before `repeat`, `retrograde`, `invert` and `augment`, so a repeated voice repeats the same improvisation.
+- **seed**: the piece's `seed` (default 0), or `improv: {seed: …}` for one voice. Choices come from DuckDB's `hash()` of the seed, the piece, section and voice names and the step, so a rebuild always gives the same notes, and two voices with the same seed still improvise differently. Change the seed for another take.
+
 ### Instruments
 
 An instrument is a set of harmonics and an envelope. Store one in `models/instruments/` to use it from any piece, the same way a piece is stored:
@@ -172,7 +194,7 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 ## How a note becomes sound
 
 1. `base/` flattens each piece's JSON into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
-2. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
+2. `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
 3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
 5. `mixed_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains, sums everything by `sample_index`, fills gaps with silence and normalises each piece.

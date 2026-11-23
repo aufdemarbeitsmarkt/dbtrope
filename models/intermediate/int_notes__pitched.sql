@@ -16,7 +16,7 @@ with voice_events as (
         voice_id,
         event_index,
         pitch_spec
-    from {{ ref('piece_voice_events') }}
+    from {{ ref('int_events__improvised') }}
 ),
 
 voice_settings as (

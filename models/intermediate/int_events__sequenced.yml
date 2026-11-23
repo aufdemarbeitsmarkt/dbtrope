@@ -43,7 +43,7 @@ unit_tests:
   - name: voices_repeat_retrograde_and_augment
     model: int_events__sequenced
     given:
-      - input: ref('piece_voice_events')
+      - input: ref('int_events__improvised')
         rows:
           - {piece_id: p, section_name: a, voice_id: plain, event_index: 1, velocity: 100, duration_spec: q}
           - {piece_id: p, section_name: a, voice_id: plain, event_index: 2, velocity: 100, duration_spec: h}

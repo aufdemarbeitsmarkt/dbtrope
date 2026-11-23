@@ -95,5 +95,26 @@ models:
           - expression_is_true:
               arguments:
                 expression: "> 0"
+      - name: improv_method
+        description: >
+          How the voice improvises on its written pitches: permutation
+          shuffles them, markov walks from one pitch to a pitch that
+          followed it in the written line. Null for a voice that plays as
+          written.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [markov, permutation]
+      - name: improv_length
+        description: How many events a markov walk plays. Defaults to the number written.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+              config:
+                where: "improv_length is not null"
+      - name: improv_seed
+        description: The voice's improv seed, or else the piece's seed.
+        data_tests: [not_null]
       - name: voice
         description: The voice's YAML as JSON, with its motif's keys merged in.

@@ -9,7 +9,7 @@ with voice_events as (
             duration_aliases.duration_beats,
             try_cast(piece_events.duration_spec as double)
         ) as _written_duration_beats
-    from {{ ref('piece_voice_events') }} as piece_events
+    from {{ ref('int_events__improvised') }} as piece_events
     left join {{ ref('duration_aliases') }} as duration_aliases
         on duration_aliases.duration_name = piece_events.duration_spec
 ),

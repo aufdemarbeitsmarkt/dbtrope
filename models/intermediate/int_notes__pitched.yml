@@ -43,7 +43,7 @@ unit_tests:
   - name: degrees_resolve_in_d_dorian
     model: int_notes__pitched
     given:
-      - input: ref('piece_voice_events')
+      - input: ref('int_events__improvised')
         rows:
           - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: "1"}
           - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: "3"}
@@ -86,7 +86,7 @@ unit_tests:
   - name: chords_stack_thirds_in_the_key
     model: int_notes__pitched
     given:
-      - input: ref('piece_voice_events')
+      - input: ref('int_events__improvised')
         rows:
           - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: i}
           - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: IV7}
@@ -119,7 +119,7 @@ unit_tests:
   - name: note_names_resolve_and_transpose
     model: int_notes__pitched
     given:
-      - input: ref('piece_voice_events')
+      - input: ref('int_events__improvised')
         rows:
           - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: Bb4}
           - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: Cb4}
@@ -147,7 +147,7 @@ unit_tests:
   - name: inverted_voices_mirror_around_their_first_pitch
     model: int_notes__pitched
     given:
-      - input: ref('piece_voice_events')
+      - input: ref('int_events__improvised')
         rows:
           - {piece_id: p, section_name: a, voice_id: degrees, event_index: 1, pitch_spec: r}
           - {piece_id: p, section_name: a, voice_id: degrees, event_index: 2, pitch_spec: "3"}

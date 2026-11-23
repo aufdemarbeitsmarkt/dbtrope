@@ -15,6 +15,13 @@ unnested_voices as (
     from voice_lists
 ),
 
+piece_seeds as (
+    select
+        piece_id,
+        seed
+    from {{ ref('pieces') }}
+),
+
 motifs as (
     select
         piece_id,
@@ -33,6 +40,7 @@ voices_with_motifs as (
         unnested_voices.piece_id,
         unnested_voices.section_name,
         unnested_voices.voice_index,
+        piece_seeds.seed as piece_seed,
         (unnested_voices.written_voice ->> 'motif') as motif_name,
         (
             (unnested_voices.written_voice ->> 'motif') is null
@@ -40,6 +48,8 @@ voices_with_motifs as (
         ) as is_motif_defined,
         json_merge_patch(coalesce(motifs.motif, '{}'), unnested_voices.written_voice) as voice
     from unnested_voices
+    join piece_seeds
+        on piece_seeds.piece_id = unnested_voices.piece_id
     left join motifs
         on motifs.piece_id = unnested_voices.piece_id
         and motifs.motif_name = (unnested_voices.written_voice ->> 'motif')
@@ -71,5 +81,8 @@ select
     coalesce((voice ->> 'retrograde')::boolean, false) as is_retrograde,
     coalesce((voice ->> 'invert')::boolean, false) as is_inverted,
     coalesce((voice ->> 'augment')::double, 1) as augmentation,
+    (voice -> 'improv' ->> 'method') as improv_method,
+    (voice -> 'improv' ->> 'length')::integer as improv_length,
+    coalesce((voice -> 'improv' ->> 'seed')::bigint, piece_seed) as improv_seed,
     voice
 from voices_with_motifs
