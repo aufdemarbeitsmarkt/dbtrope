@@ -333,9 +333,10 @@ models/
   base/                piece and instrument YAML flattened into rows
   intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
   render/              partials, mixed samples, effects, WAV and MIDI output
+  */_<directory>.yml   one file documenting and testing every model in base/, intermediate/ and render/
 macros/                compose(), instrument(), the generated registry and helpers
 analyses/score_listing.sql  a piece's notes by bar and beat, for make score
-scripts/check_layers.py  enforces which layers may read which, and model naming
+scripts/check_layers.py  enforces which layers may read which, model naming and where models are documented
 scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML
 scripts/new_model.py   creates a piece or instrument from its template
 templates/             commented starting points for a piece and an instrument

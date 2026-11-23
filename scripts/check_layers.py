@@ -9,6 +9,10 @@ Rules:
   - each layer may only ref() the layers listed in ALLOWED_UPSTREAM
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
+  - every model has a description
+  - models in base/, intermediate/ and render/ are documented in their
+    directory's _<directory>.yml (pieces and instruments keep one .yml each,
+    because that file holds the music or the sound)
 """
 
 import json
@@ -24,6 +28,9 @@ ALLOWED_UPSTREAM = {
     "intermediate": {"base", "intermediate", "seed"},
     "render": {"intermediate", "render"},
 }
+
+# Layers whose models are documented together in models/<layer>/_<layer>.yml.
+DIRECTORY_YML_LAYERS = {"base", "intermediate", "render"}
 
 INTERMEDIATE_NAME = re.compile(r"^int_[a-z0-9]+(_[a-z0-9]+)*__[a-z0-9]+(_[a-z0-9]+)*$")
 
@@ -61,6 +68,15 @@ def check(manifest: dict) -> list[str]:
             errors.append(f"{name}: intermediate models are named int_{{topic}}__{{transformation}}")
         if layer != "intermediate" and name.startswith("int_"):
             errors.append(f"{name}: only models in intermediate/ use the int_ prefix")
+
+        if not (node.get("description") or "").strip():
+            errors.append(f"{name}: add a description: stating the model's grain")
+        if layer in DIRECTORY_YML_LAYERS:
+            directory = Path(node["original_file_path"]).parent
+            expected = f"{directory.as_posix()}/_{directory.name}.yml"
+            documented_in = (node.get("patch_path") or "").split("://", 1)[-1]
+            if documented_in != expected:
+                errors.append(f"{name}: document it in {expected}, not {documented_in or 'nowhere'}")
 
         for upstream_id in node["depends_on"]["nodes"]:
             upstream = nodes.get(upstream_id)

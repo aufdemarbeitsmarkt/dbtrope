@@ -284,6 +284,17 @@ A model's layer is the first directory under `models/`. `make check` enforces th
 | `intermediate/` | Theory, form, transforms, timing, the score | base, intermediate, seeds |
 | `render/` | Partials, samples, effects, WAV output | intermediate, render |
 
+## Documenting models
+
+Models in `base/`, `intermediate/` and `render/` are documented together in one YAML file per directory, named for the directory with a leading underscore: `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/render/_render.yml`. The underscore sorts the file above the models it describes. Seeds are documented in `seeds/_seeds.yml`.
+
+- List models in lineage order, so the file reads from the directory's inputs to its outputs.
+- Put a directory's unit tests in a `unit_tests:` block after its models, in the same order. Exposures go in the file of the directory whose models they depend on.
+- Every model has a `description:` stating its grain: what one row is and which columns key it.
+- Don't add a per-model `.yml` in these directories. `make check` fails on a model documented anywhere but its directory's file, or without a description.
+
+Pieces and stored instruments are the exception: each keeps its own `.yml`, because that file is where the music or the sound is written.
+
 ## Naming models
 
 - Models outside `intermediate/` have no layer prefix. Name them for what they hold: `pieces`, `piece_motifs`, `mixed_samples`. Never `stg_`.

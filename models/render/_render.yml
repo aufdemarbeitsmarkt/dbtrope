@@ -1,0 +1,167 @@
+# Every model in render/: synthesis, effects, the mix and the WAV and MIDI files.
+# Models are in lineage order.
+
+models:
+  - name: note_partials
+    description: >
+      Each sounding tone joined to its instrument's harmonics, one row per
+      piece_id, voice_id, event_index, chord_tone_index and partial_index,
+      with everything instrument_samples needs to synthesise it: frequency,
+      amplitude, envelope, stereo gains and the samples it covers. Partials
+      at or above half the sample rate are dropped.
+    config:
+      materialized: view
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index, partial_index]
+      # a sample before the note's start would get a negative envelope level in instrument_samples
+      - expression_is_true:
+          arguments:
+            expression: "first_sample_index >= start_seconds * {{ var('sample_rate') }}"
+    columns:
+      - name: frequency_hz
+        description: The note's frequency times the partial's frequency_ratio.
+        data_tests: [not_null]
+      - name: amplitude
+        description: The partial's share of the instrument's level, times velocity / 127.
+        data_tests: [not_null]
+      - name: release_start_level
+        description: The envelope level at the end of the note's written length, where the release starts.
+        data_tests: [not_null]
+      - name: left_gain
+        data_tests: [not_null]
+      - name: right_gain
+        data_tests: [not_null]
+      - name: first_sample_index
+        description: The first sample at or after the note's start.
+        data_tests: [not_null]
+      - name: end_sample_index
+        description: One past the last sample, after the release.
+        data_tests: [not_null]
+
+  - name: instrument_samples
+    description: >
+      Each instrument's dry sound in a piece, one row per piece_id,
+      instrument_name and sample_index, at the sample_rate var. Every
+      partial of every note the instrument plays is enveloped, panned and
+      summed. Samples where the instrument is silent have no row.
+      mixed_samples adds each instrument's effects and mixes them.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, sample_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: sample_index
+        description: Position in the piece; divide by sample_rate for seconds.
+        data_tests: [not_null]
+      - name: left_amplitude
+        description: Left channel level, before effects and normalising.
+        data_tests: [not_null]
+      - name: right_amplitude
+        description: Right channel level, before effects and normalising.
+        data_tests: [not_null]
+
+  - name: mixed_samples
+    description: >
+      The stereo mix. One row per piece_id and sample_index, at the
+      sample_rate var, from the first sample until the piece's last event
+      ends (a closing rest included) or its last note's release or echo
+      fades, whichever is later. Each instrument's samples are summed with
+      its delayed copies (delay echoes and reverb reflections, from
+      int_instruments__effect_taps), then each piece is normalised so its
+      loudest sample in either channel is 0.89. A piece of only rests is
+      silent.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, sample_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: sample_index
+        description: Position in the piece; divide by sample_rate for seconds.
+        data_tests: [not_null]
+      - name: left_amplitude
+        description: Left channel level between -1 and 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between -1 and 1"
+      - name: right_amplitude
+        description: Right channel level between -1 and 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between -1 and 1"
+
+  - name: render_wav
+    description: >
+      Writes each piece in mixed_samples to <output_dir>/<piece_id>.wav as
+      16-bit stereo PCM, and records what it wrote. One row per piece.
+    config:
+      sample_rate: "{{ var('sample_rate') }}"
+      output_dir: "{{ var('output_dir') }}"
+    columns:
+      - name: piece_id
+        data_tests: [unique, not_null]
+      - name: wav_path
+        description: Path of the WAV file, relative to the project root.
+        data_tests: [not_null]
+      - name: channel_count
+        data_tests: [not_null]
+      - name: sample_rate
+        data_tests: [not_null]
+      - name: sample_count
+        description: Samples per channel.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: duration_seconds
+        data_tests: [not_null]
+
+  - name: render_midi
+    description: >
+      Writes each piece's score to <output_dir>/<piece_id>.mid as a
+      Standard MIDI File, and records what it wrote. One row per piece.
+      Track 1 holds the tempo and time signature; each voice gets its own
+      track and channel (skipping channel 10, which General MIDI keeps for
+      drums), named after the voice. Notes keep their written lengths; an
+      instrument's release, effects and timbre aren't part of MIDI.
+    config:
+      output_dir: "{{ var('output_dir') }}"
+    columns:
+      - name: piece_id
+        data_tests: [unique, not_null]
+      - name: midi_path
+        description: Path of the MIDI file, relative to the project root.
+        data_tests: [not_null]
+      - name: track_count
+        description: The tempo track plus one track per voice.
+        data_tests: [not_null]
+      - name: note_count
+        description: Notes written, one per sounding tone with a velocity above 0.
+        data_tests: [not_null]
+
+exposures:
+  - name: rendered_pieces
+    label: Rendered pieces
+    type: application
+    maturity: high
+    description: >
+      The WAV and MIDI files dbt build writes to the output_dir var, one of
+      each per piece: output/<piece>.wav to listen to, output/<piece>.mid
+      to open in a DAW or notation program.
+    owner:
+      name: dbtrope
+    depends_on:
+      - ref('render_wav')
+      - ref('render_midi')
