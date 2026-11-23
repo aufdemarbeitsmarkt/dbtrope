@@ -6,17 +6,20 @@
 #}
 
 {% macro registered_pieces() %}
-    {{ return(['ditty', 'lullaby']) }}
+    {{ return(['ditty', 'lullaby', 'nocturne', 'round_in_f', 'variations']) }}
 {% endmacro %}
 
 {% macro registered_instruments() %}
-    {{ return(['pluck', 'sine', 'soft_pad', 'warm_bass']) }}
+    {{ return(['glass', 'pluck', 'sine', 'soft_pad', 'warm_bass']) }}
 {% endmacro %}
 
 {% macro piece_instrument_uses(piece_name) %}
     {%- set uses = {
         'ditty': ['pluck', 'warm_bass'],
         'lullaby': ['soft_pad', 'warm_bass'],
+        'nocturne': ['glass', 'soft_pad'],
+        'round_in_f': ['glass', 'pluck', 'warm_bass'],
+        'variations': ['glass', 'pluck', 'warm_bass'],
     } %}
     {{ return(uses.get(piece_name, [])) }}
 {% endmacro %}

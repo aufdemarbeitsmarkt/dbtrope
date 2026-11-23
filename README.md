@@ -25,7 +25,19 @@ make new-instrument NAME=my_instrument  # models/instruments/my_instrument.yml a
 make build                              # registers it and writes output/my_piece.wav
 ```
 
-The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`. `ditty` and `lullaby` in `models/pieces/` are the finished examples.
+The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`.
+
+### Examples
+
+| Piece | Shows |
+|---|---|
+| `ditty` | note names, beats and velocities on two voices |
+| `lullaby` | scale degrees, Roman-numeral chords, a stored instrument overridden and an inline one |
+| `round_in_f` | a three-voice round built from sections of motifs, with panned delays |
+| `variations` | a theme played backwards, upside down, twice as fast and twice as slow |
+| `nocturne` | a markov-improvised melody, an inverted and an augmented theme, delay and reverb |
+
+Each is a `.yml` in `models/pieces/`; after `make build`, listen to `output/<piece>.wav`.
 
 A piece is a model in `models/pieces/`: a one-line `.sql` file and a `.yml` file holding the music under `config.meta`.
 
@@ -160,7 +172,7 @@ models:
         pan: 0                                       # -1 left to 1 right
 ```
 
-The library has `sine` (the default for voices without an instrument), `pluck`, `soft_pad` and `warm_bass`.
+The library has `sine` (the default for voices without an instrument), `pluck`, `glass` (an inharmonic bell with a little reverb), `soft_pad` and `warm_bass`.
 
 A voice names its instrument with `instrument:`. The name is looked up in this order:
 

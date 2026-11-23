@@ -5,8 +5,8 @@
 # which writes models/pieces/my_piece.yml from this file (with __NAME__
 # replaced and these header lines dropped) and a one-line my_piece.sql.
 # Every key is optional except sections (or voices, for a piece with only
-# one section); delete what you don't need. ditty and lullaby in
-# models/pieces/ are finished examples.
+# one section); delete what you don't need. The README lists the finished
+# examples in models/pieces/.
 models:
   - name: __NAME__
     description: Describe the piece here.
