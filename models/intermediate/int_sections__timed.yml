@@ -25,6 +25,12 @@ models:
         data_tests: [not_null]
       - name: duration_seconds
         data_tests: [not_null]
+      - name: tempo_bpm
+        description: The tempo the section plays at, in quarter-note beats per minute.
+        data_tests: [not_null]
+      - name: meter
+        description: The section's time signature, such as 3/4.
+        data_tests: [not_null]
       - name: is_whole_bars
         description: >
           False when the section ends partway through a bar of the piece's

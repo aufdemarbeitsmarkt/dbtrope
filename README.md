@@ -13,7 +13,7 @@ make install   # create .venv and install dbt-duckdb
 make build     # check layer rules, then dbt build
 ```
 
-Each piece is written to `output/<piece>.wav`. The `render_wav` table lists what was written.
+Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
 
 ## Writing a piece
 
@@ -216,6 +216,8 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 6. `mixed_samples` adds each instrument's delayed copies from `int_instruments__effect_taps` (the dry sound, delay echoes and reverb reflections) by shifting `sample_index`, sums everything, fills gaps with silence and normalises each piece.
 7. `render_wav`, a dbt Python model, writes the samples as 16-bit stereo PCM with the standard library's `wave` module.
 
+`render_midi`, another Python model, writes `int_score__note_events` as a Standard MIDI File without third-party libraries: a tempo and time-signature track, then one named track and channel per voice (channel 10 is skipped, since General MIDI keeps it for drums). MIDI holds pitches, velocities and written lengths, so instruments, releases and effects are left to whatever plays it.
+
 ## Layout
 
 ```
@@ -225,7 +227,7 @@ models/
   instruments/         one .yml + one-line .sql per stored instrument
   base/                piece and instrument YAML flattened into rows
   intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
-  render/              partials, mixed samples, effects, WAV output
+  render/              partials, mixed samples, effects, WAV and MIDI output
 macros/                compose(), instrument(), the generated registry and helpers
 scripts/check_layers.py  enforces which layers may read which, and model naming
 scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML

@@ -19,6 +19,7 @@ piece_tempos as (
     select
         piece_id,
         tempo_bpm,
+        meter,
         -- beats are quarter notes, so a bar of 6/8 is 3 beats long
         (
             beats_per_bar * 4
@@ -78,6 +79,8 @@ select
     timed_sections.duration_beats,
     (timed_sections.start_beats * 60 / piece_tempos.tempo_bpm) as start_seconds,
     (timed_sections.duration_beats * 60 / piece_tempos.tempo_bpm) as duration_seconds,
+    piece_tempos.tempo_bpm,
+    piece_tempos.meter,
     ((timed_sections.duration_beats % piece_tempos.bar_beats) = 0) as is_whole_bars
 from timed_sections
 join piece_tempos

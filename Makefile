@@ -39,4 +39,4 @@ new-instrument: install
 
 clean:
 	$(DBT) clean
-	rm -f *.duckdb *.duckdb.wal output/*.wav
+	rm -f *.duckdb *.duckdb.wal output/*.wav output/*.mid
