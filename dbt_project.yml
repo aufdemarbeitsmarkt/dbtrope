@@ -18,15 +18,14 @@ vars:
   # 22050 for drafts, 44100 for final renders
   sample_rate: 22050
   output_dir: output
+  # where piece and stored instrument files are read from
+  pieces_dir: pieces
+  instruments_dir: instruments
+  # render one piece, by name or path to a .yml file: --vars '{piece: nocturne}'; empty renders every piece
+  piece: ""
 
 models:
   dbtrope:
-    pieces:
-      +materialized: view
-      +tags: ["piece"]
-    instruments:
-      +materialized: view
-      +tags: ["instrument"]
     base:
       +materialized: view
     intermediate:

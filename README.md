@@ -1,6 +1,6 @@
 # dbtrope
 
-Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
+Compose music with a dbt project. A piece is a YAML file, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to WAV and MIDI files, all by `dbt build`.
 
 > Status: all nine milestones of the build plan are done. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity, stereo pan, delay and reverb.
 
@@ -10,60 +10,52 @@ Requires Python 3.10+.
 
 ```sh
 make install   # create .venv and install dbt-duckdb
-make build     # check layer rules, then dbt build
+make build     # check layer rules, then dbt build every piece in pieces/
+make build PIECE=nocturne            # just one piece
+make build PIECE=~/sketches/idea.yml # a piece file from anywhere
 ```
 
-Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
+`make build PIECE=…` runs `dbt build --vars '{piece: …}'`; the var takes a piece name or a path to a `.yml` file. Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
 
 ## Tutorial: your first piece
 
 This walks from an empty piece to one that uses most of dbtrope, building after each step. Every key it uses is described under [Writing a piece](#writing-a-piece).
 
-**1. A melody.** A piece is two files in `models/pieces/`. Create `models/pieces/first_tune.sql` containing only:
-
-```sql
-{{ compose() }}
-```
-
-and `models/pieces/first_tune.yml`:
+**1. A melody.** A piece is one YAML file in `pieces/`, and its file name is its name. Create `pieces/first_tune.yml`:
 
 ```yaml
-models:
-  - name: first_tune
-    description: My first piece.
-    config:
-      meta:
-        tempo: 100
-        voices:
-          - name: melody
-            notes: [E4, D4, C4, D4, E4, E4, E4, r]
-            beats: [q, q, q, q, q, q, h, w]
+description: My first piece.
+tempo: 100
+voices:
+  - name: melody
+    notes: [E4, D4, C4, D4, E4, E4, E4, r]
+    beats: [q, q, q, q, q, q, h, w]
 ```
 
-Run `make build`, then play `output/first_tune.wav`. `make score PIECE=first_tune` lists what you wrote by bar and beat.
+Run `make build PIECE=first_tune`, then play `output/first_tune.wav`. `make score PIECE=first_tune` lists what you wrote by bar and beat.
 
 **2. A key and a bass line.** Write in scale degrees and chords so the key does the work. Add a `key` and two voices under `voices`:
 
 ```yaml
-        key: {root: G, scale: major}
-        voices:
-          - name: melody
-            degrees: [3, 2, 1, 2, 3, 3, 3, r]
-            beats: [q, q, q, q, q, q, h, w]
-          - name: chords
-            octave: 3
-            chords: [I, V, I, I]
-            beats: [w]
-            velocity: 60
+key: {root: G, scale: major}
+voices:
+  - name: melody
+    degrees: [3, 2, 1, 2, 3, 3, 3, r]
+    beats: [q, q, q, q, q, q, h, w]
+  - name: chords
+    octave: 3
+    chords: [I, V, I, I]
+    beats: [w]
+    velocity: 60
 ```
 
-Change `root` to `Eb` or `scale` to `dorian` and build again: the same numbers make a different tune.
+Change `root` to `Eb` or `scale` to `dorian` and build again: the same numbers make a different tune. Each step builds the same way, with `make build PIECE=first_tune`.
 
 **3. Instruments.** Give each voice a sound: `instrument: pluck` on the melody and `instrument: soft_pad` on the chords. Then give the pad some space by declaring a variant of it in the piece:
 
 ```yaml
-        instruments:
-          pad: {use: soft_pad, reverb: {seconds: 2, mix: 0.3}, pan: -0.3}
+instruments:
+  pad: {use: soft_pad, reverb: {seconds: 2, mix: 0.3}, pan: -0.3}
 ```
 
 and use `instrument: pad` instead.
@@ -71,18 +63,18 @@ and use `instrument: pad` instead.
 **4. Sections and a form.** Move the voices under a section, add a second section that plays the melody backwards over different chords, and choose the order. The melody becomes a motif so both sections can share it:
 
 ```yaml
-        motifs:
-          tune: {degrees: [3, 2, 1, 2, 3, 3, 3, r], beats: [q, q, q, q, q, q, h, w]}
-        sections:
-          a:
-            voices:
-              - {name: melody, instrument: pluck, motif: tune}
-              - {name: chords, instrument: pad, octave: 3, chords: [I, V, I, I], beats: [w], velocity: 60}
-          b:
-            voices:
-              - {name: melody, instrument: pluck, motif: tune, retrograde: true, invert: true}
-              - {name: chords, instrument: pad, octave: 3, chords: [IV, I, V, V], beats: [w], velocity: 60}
-        form: [a, b, a]
+motifs:
+  tune: {degrees: [3, 2, 1, 2, 3, 3, 3, r], beats: [q, q, q, q, q, q, h, w]}
+sections:
+  a:
+    voices:
+      - {name: melody, instrument: pluck, motif: tune}
+      - {name: chords, instrument: pad, octave: 3, chords: [I, V, I, I], beats: [w], velocity: 60}
+  b:
+    voices:
+      - {name: melody, instrument: pluck, motif: tune, retrograde: true, invert: true}
+      - {name: chords, instrument: pad, octave: 3, chords: [IV, I, V, V], beats: [w], velocity: 60}
+form: [a, b, a]
 ```
 
 A piece has either `voices` or `sections`, so delete the old `voices` list.
@@ -90,26 +82,26 @@ A piece has either `voices` or `sections`, so delete the old `voices` list.
 **5. Improvise.** Add a third section whose melody wanders through the motif's notes, and put it in the form:
 
 ```yaml
-          c:
-            voices:
-              - {name: melody, instrument: glass, motif: tune, improv: {method: markov, length: 8}}
-              - {name: chords, instrument: pad, octave: 3, chords: [vi, IV, V, I], beats: [w], velocity: 60}
-        form: [a, b, c, a]
-        seed: 1
+  c:
+    voices:
+      - {name: melody, instrument: glass, motif: tune, improv: {method: markov, length: 8}}
+      - {name: chords, instrument: pad, octave: 3, chords: [vi, IV, V, I], beats: [w], velocity: 60}
+form: [a, b, c, a]
+seed: 1
 ```
 
 Each build gives the same notes. Change `seed` for another take.
 
-**6. Look around.** `make docs` opens dbt docs in your browser. Your piece's page shows its YAML under Details, and its lineage graph runs from `pluck` and `soft_pad` through every model to `render_wav`. Open `output/first_tune.mid` in a DAW to hear it on other instruments.
+**6. Look around.** `make docs` opens dbt docs in your browser, with every model from `piece_files` to `render_wav` and its lineage; `pieces` and `piece_instruments` show your piece as the build read it. Open `output/first_tune.mid` in a DAW to hear it on other instruments.
 
 ## Writing a piece
 
 The quickest start is a template:
 
 ```sh
-make new-piece NAME=my_piece            # models/pieces/my_piece.yml and .sql
-make new-instrument NAME=my_instrument  # models/instruments/my_instrument.yml and .sql
-make build                              # registers it and writes output/my_piece.wav
+make new-piece NAME=my_piece            # pieces/my_piece.yml
+make new-instrument NAME=my_instrument  # instruments/my_instrument.yml
+make build PIECE=my_piece               # writes output/my_piece.wav and .mid
 ```
 
 The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`.
@@ -124,31 +116,22 @@ The new piece uses every feature below, with a comment on each key, and renders 
 | `variations` | a theme played backwards, upside down, twice as fast and twice as slow |
 | `nocturne` | a markov-improvised melody, an inverted and an augmented theme, delay and reverb |
 
-Each is a `.yml` in `models/pieces/`; after `make build`, listen to `output/<piece>.wav`.
+Each is a `.yml` in `pieces/`; after `make build`, listen to `output/<piece>.wav`.
 
-A piece is a model in `models/pieces/`: a one-line `.sql` file and a `.yml` file holding the music under `config.meta`.
-
-```sql
--- models/pieces/ditty.sql
-{{ compose() }}
-```
+A piece is a YAML file in `pieces/`. The file's name is the piece's name, so `pieces/ditty.yml` renders to `output/ditty.wav`.
 
 ```yaml
-# models/pieces/ditty.yml
-models:
-  - name: ditty
-    description: A short tune in C major for two voices.
-    config:
-      meta:
-        tempo: 112          # quarter-note beats per minute
-        meter: 4/4
-        voices:
-          - name: lead
-            notes: [C4, E4, G4, C5, B4, G4, A4, F4, E4, D4, C4, r]
-            beats: [e, e, e, e, q, q, dotted_q, e, q, q, h, h]
-          - name: bass
-            notes: [C3, G2, F2, G2, C3]
-            beats: [2, 2, 2, 2, 4]
+# pieces/ditty.yml
+description: A short tune in C major for two voices.
+tempo: 112          # quarter-note beats per minute
+meter: 4/4
+voices:
+  - name: lead
+    notes: [C4, E4, G4, C5, B4, G4, A4, F4, E4, D4, C4, r]
+    beats: [e, e, e, e, q, q, dotted_q, e, q, q, h, h]
+  - name: bass
+    notes: [C3, G2, F2, G2, C3]
+    beats: [2, 2, 2, 2, 4]
 ```
 
 - **notes**: note names in scientific pitch notation (`C4` is middle C), with `#` or `b` for sharps and flats (`F#3`, `Bb4`). `r` is a rest.
@@ -160,7 +143,7 @@ models:
 A voice can be written in scale degrees or chords instead of note names, relative to the piece's `key`:
 
 ```yaml
-# models/pieces/lullaby.yml (meta)
+# pieces/lullaby.yml (excerpt)
 tempo: 96
 meter: 3/4
 key: {root: D, scale: dorian}
@@ -188,7 +171,7 @@ A voice uses exactly one of `notes`, `degrees` and `chords`.
 Longer pieces are built from sections. Each section has its own `voices`, and `form` sets the order the sections play in:
 
 ```yaml
-# meta
+# excerpt
 motifs:
   hook:
     notes: [C4, D4, E4, G4, E4, D4, C4, r]
@@ -220,7 +203,7 @@ Each transform is a key of its own, so the order they are written in doesn't mat
 A voice can improvise on its written pitches:
 
 ```yaml
-# meta
+# excerpt
 seed: 7
 voices:
   - name: walker
@@ -239,24 +222,15 @@ voices:
 
 ### Instruments
 
-An instrument is a set of harmonics and an envelope. Store one in `models/instruments/` to use it from any piece, the same way a piece is stored:
-
-```sql
--- models/instruments/soft_pad.sql
-{{ instrument() }}
-```
+An instrument is a set of harmonics and an envelope. Store one as a YAML file in `instruments/` to use it from any piece; the file's name is the instrument's name:
 
 ```yaml
-# models/instruments/soft_pad.yml
-models:
-  - name: soft_pad
-    description: A warm pad with a slow attack and a long release, for chords.
-    config:
-      meta:
-        partials: [[1, 0.5], [2, 0.25], [3, 0.12]]   # [frequency ratio, amplitude]
-        adsr: {a: 0.2, d: 0.1, s: 0.7, r: 0.4}       # seconds, seconds, level, seconds
-        range: [C2, C6]                              # optional
-        pan: 0                                       # -1 left to 1 right
+# instruments/soft_pad.yml
+description: A warm pad with a slow attack and a long release, for chords.
+partials: [[1, 0.5], [2, 0.25], [3, 0.12]]   # [frequency ratio, amplitude]
+adsr: {a: 0.2, d: 0.1, s: 0.7, r: 0.4}       # seconds, seconds, level, seconds
+range: [C2, C6]                              # optional
+pan: 0                                       # -1 left to 1 right
 ```
 
 The library has `sine` (the default for voices without an instrument), `pluck`, `glass` (an inharmonic bell with a little reverb), `soft_pad` and `warm_bass`.
@@ -264,11 +238,11 @@ The library has `sine` (the default for voices without an instrument), `pluck`, 
 A voice names its instrument with `instrument:`. The name is looked up in this order:
 
 1. **Declared in the piece** under `instruments:`. With `use:`, it starts from that stored instrument and replaces only the keys given, down to single `adsr` values. Without `use:`, it is an inline instrument for that piece only.
-2. **Stored** in `models/instruments/`, used as-is.
-3. **Neither**: `dbt parse` fails, naming the piece and the missing instrument.
+2. **Stored** in `instruments/`, used as-is.
+3. **Neither**: the build fails a test on `piece_instruments` whose failing row names the piece and the missing instrument.
 
 ```yaml
-# models/pieces/lullaby.yml (meta)
+# pieces/lullaby.yml (excerpt)
 instruments:
   soft: {use: soft_pad, pan: -0.3, adsr: {r: 0.8}}   # stored, two settings changed
   bell:                                              # inline, this piece only
@@ -301,13 +275,15 @@ instruments:
 - Writing the key, even as `{}`, turns the effect on with its defaults. A piece's `delay: null` or `reverb: null` turns off a stored instrument's.
 - The piece lasts until the last echo or reflection fades.
 
-Each piece's stored instruments are upstream of it in lineage, so `dbt build -s soft_pad+` rebuilds and re-renders after changing `soft_pad`.
+Every build reads the whole instrument library, so after changing an instrument, `make build` re-renders every piece with it. `piece_instruments` shows which pieces use which instruments.
 
-After adding, renaming or removing a piece or instrument, run `make build` (or `make registry`). dbt applies YAML after parsing SQL, so a model can't find pieces or instruments by itself; `scripts/build_registry.py` reads the YAML and writes `macros/registry.sql`, which gives `base/pieces` and `base/instruments` a real `ref()` to each one and gives each piece `depends_on` lines for its stored instruments. The build fails if the list of pieces or instruments is stale, and CI checks the committed registry is current.
+### How files get into the build
+
+Pieces and instruments are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Two Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads every `.yml` in the `pieces_dir` var, or just the one the `piece` var names, and `instruments` reads every `.yml` in the `instruments_dir` var. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
 
 ## How a note becomes sound
 
-1. `base/` flattens each piece's JSON into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
+1. `base/piece_files` and `base/instruments` read the piece and instrument files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
 2. `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
 3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
@@ -319,26 +295,24 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 
 ## Browsing
 
-- `make docs` generates and serves dbt docs. Each piece's page shows its music under Details → Meta, and lineage shows which instruments it uses. The overview page explains where to look.
+- `make docs` generates and serves dbt docs: every model with its description, columns, tests and lineage. The overview page explains where to look.
 - `make score PIECE=<piece>` prints a built piece's notes by section, bar and beat, with chords spelled out (`analyses/score_listing.sql`).
 - `int_score__note_events` is the score as a table, for any query you like.
 
 ## Layout
 
 ```
+pieces/                one .yml per composition
+instruments/           one .yml per stored instrument
 seeds/                 music theory reference tables
 models/
-  pieces/              one .yml + one-line .sql per composition
-  instruments/         one .yml + one-line .sql per stored instrument
-  base/                piece and instrument YAML flattened into rows
+  base/                piece and instrument files read and flattened into rows
   intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
   render/              partials, mixed samples, effects, WAV and MIDI output
-  */_<directory>.yml   one file documenting and testing every model in base/, intermediate/ and render/
-macros/                compose(), instrument(), the generated registry and helpers
+  */_<directory>.yml   one file documenting and testing every model in the directory
 analyses/score_listing.sql  a piece's notes by bar and beat, for make score
 scripts/check_layers.py  enforces which layers may read which, model naming and where models are documented
-scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML
-scripts/new_model.py   creates a piece or instrument from its template
+scripts/new_from_template.py creates a piece or instrument file from its template
 templates/             commented starting points for a piece and an instrument
 docs/sql_style.md      how SQL is written here
 ```
@@ -350,5 +324,8 @@ docs/sql_style.md      how SQL is written here
 | DuckDB file | `DBTROPE_DUCKDB_PATH` env var | `dbtrope.duckdb` |
 | Sample rate | `sample_rate` var | `22050` (use `44100` for final renders) |
 | Output folder | `output_dir` var | `output` |
+| Piece to render | `piece` var: a name or a path to a `.yml` file | empty: every piece in `pieces_dir` |
+| Piece folder | `pieces_dir` var | `pieces` |
+| Instrument folder | `instruments_dir` var | `instruments` |
 
-Override vars per run: `dbt build --vars '{sample_rate: 44100}'`.
+Override vars per run: `dbt build --vars '{piece: nocturne, sample_rate: 44100}'`.

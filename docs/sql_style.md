@@ -274,26 +274,22 @@ qualify row_number() over (
 
 ## Layers
 
-A model's layer is the first directory under `models/`. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
+A model's layer is the first directory under `models/`. Pieces and stored instruments aren't models: they are YAML files in `pieces/` and `instruments/` at the project root, which `base/piece_files` and `base/instruments` read. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
 
 | Layer | Holds | May read |
 |---|---|---|
-| `pieces/` | One YAML-defined model per composition (`{{ compose() }}`) | instruments, seeds |
-| `instruments/` | One YAML-defined model per stored instrument (`{{ instrument() }}`) | seeds |
-| `base/` | Piece and instrument YAML flattened into rows | pieces, instruments, base, seeds |
+| `base/` | Piece and instrument files read and flattened into rows | base, seeds |
 | `intermediate/` | Theory, form, transforms, timing, the score | base, intermediate, seeds |
 | `render/` | Partials, samples, effects, WAV output | intermediate, render |
 
 ## Documenting models
 
-Models in `base/`, `intermediate/` and `render/` are documented together in one YAML file per directory, named for the directory with a leading underscore: `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/render/_render.yml`. The underscore sorts the file above the models it describes. Seeds are documented in `seeds/_seeds.yml`.
+Models are documented together in one YAML file per directory, named for the directory with a leading underscore: `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/render/_render.yml`. The underscore sorts the file above the models it describes. Seeds are documented in `seeds/_seeds.yml`.
 
 - List models in lineage order, so the file reads from the directory's inputs to its outputs.
 - Put a directory's unit tests in a `unit_tests:` block after its models, in the same order. Exposures go in the file of the directory whose models they depend on.
 - Every model has a `description:` stating its grain: what one row is and which columns key it.
-- Don't add a per-model `.yml` in these directories. `make check` fails on a model documented anywhere but its directory's file, or without a description.
-
-Pieces and stored instruments are the exception: each keeps its own `.yml`, because that file is where the music or the sound is written.
+- Don't add a per-model `.yml`. `make check` fails on a model documented anywhere but its directory's file, or without a description.
 
 ## Naming models
 

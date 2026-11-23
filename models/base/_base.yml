@@ -2,11 +2,31 @@
 # Models are in lineage order.
 
 models:
+  - name: piece_files
+    description: >
+      The piece files the build reads, one row per piece_id, with each
+      file's YAML as JSON. Without the piece var, every .yml in the
+      pieces_dir var (pieces/); with it, only that piece, by name
+      (nocturne) or by path to a .yml file anywhere. A piece's id is its
+      file name.
+    config:
+      pieces_dir: "{{ var('pieces_dir') }}"
+      piece: "{{ var('piece') }}"
+    columns:
+      - name: piece_id
+        description: The file's name without .yml.
+        data_tests: [unique, not_null]
+      - name: file_path
+        description: Where the file was read from, relative to the directory dbt runs in.
+        data_tests: [not_null]
+      - name: score
+        description: The file's YAML as JSON.
+        data_tests: [not_null]
+
   - name: pieces
     description: >
-      Every piece in the project, one row per piece_id, with its piece-wide
-      settings and the full score as JSON. Pieces are listed in
-      macros/registry.sql, which `make registry` writes.
+      Every piece in the build, one row per piece_id, with its piece-wide
+      settings and the full score as JSON.
     data_tests:
       # a piece is written either as voices or as sections of voices
       - expression_is_true:
@@ -14,8 +34,12 @@ models:
             expression: "(score -> 'voices') is null or (score -> 'sections') is null"
     columns:
       - name: piece_id
-        description: The piece model's name.
+        description: The piece file's name.
         data_tests: [unique, not_null]
+      - name: file_path
+        description: The piece file it was read from.
+      - name: description
+        description: The piece's description, as written at the top of its file.
       - name: tempo_bpm
         description: Quarter-note beats per minute. Defaults to 120.
         data_tests:
@@ -278,13 +302,19 @@ models:
 
   - name: instruments
     description: >
-      The stored instrument library, one row per instrument_name, with its
-      YAML as JSON. Instruments are listed in macros/registry.sql, which
-      `make registry` writes.
+      The stored instrument library, one row per instrument_name: every
+      .yml in the instruments_dir var (instruments/), with its YAML as
+      JSON. An instrument's name is its file name. Every build reads the
+      whole library, whichever pieces it renders.
+    config:
+      instruments_dir: "{{ var('instruments_dir') }}"
     columns:
       - name: instrument_name
-        description: The instrument model's name.
+        description: "The file's name without .yml, which pieces use in instrument: and use:."
         data_tests: [unique, not_null]
+      - name: file_path
+        description: Where the file was read from, relative to the directory dbt runs in.
+        data_tests: [not_null]
       - name: definition
         description: The instrument's YAML as JSON.
 

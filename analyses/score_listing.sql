@@ -6,7 +6,8 @@
 
     or every piece by leaving PIECE out.
 -#}
-{%- set piece = var('piece', none) %}
+{#- the piece var can be a name or a path to a .yml file; either way the piece's id is the file name #}
+{%- set piece = var('piece').split('/') | last | replace('.yaml', '') | replace('.yml', '') %}
 
 with note_events as (
     select

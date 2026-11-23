@@ -19,11 +19,6 @@ jobs:
       - name: Install
         run: make install
 
-      - name: Check the registry is up to date
-        run: |
-          make registry
-          git diff --exit-code macros/registry.sql
-
       - name: Check layers and naming
         run: make check TARGET=ci
 

@@ -1,7 +1,0 @@
-models:
-  - name: sine
-    description: A pure sine wave with short fades. Voices without an instrument play this.
-    config:
-      meta:
-        partials: [[1, 1]]
-        adsr: {a: 0.01, d: 0, s: 1, r: 0.05}
