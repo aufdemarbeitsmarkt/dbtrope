@@ -86,8 +86,14 @@ select
     -- equal-power panning keeps a note equally loud wherever it sits
     cos((pan + 1) * pi() / 4) as left_gain,
     sin((pan + 1) * pi() / 4) as right_gain,
-    round(start_seconds * {{ sample_rate }})::bigint as first_sample_index,
-    round((start_seconds + duration_seconds + release_seconds) * {{ sample_rate }})::bigint as end_sample_index
+    /*
+        The samples that fall within the note and its release. Rounding up
+        means no sample before the note's start is included; rounding a start
+        down would give that sample a negative time into the note, and so a
+        negative envelope level.
+    */
+    ceil(start_seconds * {{ sample_rate }})::bigint as first_sample_index,
+    ceil((start_seconds + duration_seconds + release_seconds) * {{ sample_rate }})::bigint as end_sample_index
 from note_partials
 -- partials at or above the Nyquist frequency can't be represented and would alias
 where frequency_hz < ({{ sample_rate }} / 2)
