@@ -3,10 +3,12 @@ models:
     description: >
       The stereo mix. One row per piece_id and sample_index, at the
       sample_rate var, from the first sample until the piece's last event
-      ends (a closing rest included) or its last note's release fades,
-      whichever is later. Every partial of every note is enveloped, panned
-      and summed, then each piece is normalised so its loudest sample in
-      either channel is 0.89. A piece of only rests is silent.
+      ends (a closing rest included) or its last note's release or echo
+      fades, whichever is later. Each instrument's samples are summed with
+      its delayed copies (delay echoes and reverb reflections, from
+      int_instruments__effect_taps), then each piece is normalised so its
+      loudest sample in either channel is 0.89. A piece of only rests is
+      silent.
     data_tests:
       - unique_combination_of_columns:
           arguments:

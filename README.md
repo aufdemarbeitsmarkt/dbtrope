@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 7, improvisation. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
+> Status: milestone 8, effects. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity, stereo pan, delay and reverb.
 
 ## Quick start
 
@@ -187,6 +187,21 @@ voices:
 - **range**: a note outside it makes the build warn but still plays.
 - **velocity** (voice): 0 to 127, default 100. `velocities: [110, 80, 90, 80]` sets it note by note, repeating like `beats`.
 
+#### Effects
+
+An instrument can have a delay and a reverb, stored or set in the piece like any other key:
+
+```yaml
+instruments:
+  lead: {use: pluck, delay: {seconds: 0.375, feedback: 0.35, repeats: 3}}
+  hall: {use: soft_pad, reverb: {seconds: 1.8, mix: 0.3}}
+```
+
+- **delay**: `repeats` echoes, `seconds` apart, each `feedback` times the level of the one before. Defaults: 0.25 s, 0.4, 3.
+- **reverb**: 24 reflections spread over `seconds` and alternating between the channels, fading by 60 dB by the end; `mix` is their level against the dry sound. Defaults: 1.5 s, 0.25. It's a multi-tap delay rather than a feedback reverb (SQL can't easily feed a sample back into later ones), so it suits pads and sustained sounds better than short percussive ones, where the reflections can be heard separately.
+- Writing the key, even as `{}`, turns the effect on with its defaults. A piece's `delay: null` or `reverb: null` turns off a stored instrument's.
+- The piece lasts until the last echo or reflection fades.
+
 Each piece's stored instruments are upstream of it in lineage, so `dbt build -s soft_pad+` rebuilds and re-renders after changing `soft_pad`.
 
 After adding, renaming or removing a piece or instrument, run `make build` (or `make registry`). dbt applies YAML after parsing SQL, so a model can't find pieces or instruments by itself; `scripts/build_registry.py` reads the YAML and writes `macros/registry.sql`, which gives `base/pieces` and `base/instruments` a real `ref()` to each one and gives each piece `depends_on` lines for its stored instruments. The build fails if the list of pieces or instruments is stale, and CI checks the committed registry is current.
@@ -197,8 +212,9 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 2. `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
 3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
-5. `mixed_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains, sums everything by `sample_index`, fills gaps with silence and normalises each piece.
-6. `render_wav`, a dbt Python model, writes the samples as 16-bit stereo PCM with the standard library's `wave` module.
+5. `instrument_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains and sums it by instrument and `sample_index`.
+6. `mixed_samples` adds each instrument's delayed copies from `int_instruments__effect_taps` (the dry sound, delay echoes and reverb reflections) by shifting `sample_index`, sums everything, fills gaps with silence and normalises each piece.
+7. `render_wav`, a dbt Python model, writes the samples as 16-bit stereo PCM with the standard library's `wave` module.
 
 ## Layout
 

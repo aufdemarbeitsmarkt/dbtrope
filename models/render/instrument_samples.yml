@@ -1,0 +1,26 @@
+models:
+  - name: instrument_samples
+    description: >
+      Each instrument's dry sound in a piece, one row per piece_id,
+      instrument_name and sample_index, at the sample_rate var. Every
+      partial of every note the instrument plays is enveloped, panned and
+      summed. Samples where the instrument is silent have no row.
+      mixed_samples adds each instrument's effects and mixes them.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, sample_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: sample_index
+        description: Position in the piece; divide by sample_rate for seconds.
+        data_tests: [not_null]
+      - name: left_amplitude
+        description: Left channel level, before effects and normalising.
+        data_tests: [not_null]
+      - name: right_amplitude
+        description: Right channel level, before effects and normalising.
+        data_tests: [not_null]

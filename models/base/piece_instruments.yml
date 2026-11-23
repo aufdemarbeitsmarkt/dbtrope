@@ -71,6 +71,42 @@ models:
         description: The lowest note the instrument should play, if it has a range.
       - name: highest_note_name
         description: The highest note the instrument should play, if it has a range.
+      - name: delay_seconds
+        description: Time between echoes, for an instrument with a delay; null otherwise. Defaults to 0.25.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+              config:
+                where: "delay_seconds is not null"
+      - name: delay_feedback
+        description: Each echo's level relative to the one before, from 0 to just under 1. Defaults to 0.4.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0 and delay_feedback < 1"
+      - name: delay_repeats
+        description: How many echoes the delay plays. Defaults to 3.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+      - name: reverb_seconds
+        description: >
+          How long the reverb takes to fade by 60 dB, for an instrument with
+          a reverb; null otherwise. Defaults to 1.5.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+              config:
+                where: "reverb_seconds is not null"
+      - name: reverb_mix
+        description: The reverb's level relative to the dry sound. Defaults to 0.25.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
 
 unit_tests:
   - name: declarations_override_stored_instruments_key_by_key

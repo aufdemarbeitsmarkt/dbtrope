@@ -22,3 +22,9 @@ models:
         range: [C2, C6]
         # Stereo position from -1 (left) to 1 (right).
         pan: 0
+        # Optional effects; delete either line to leave it off. A piece can
+        # turn one off for itself with `delay: null` or `reverb: null`.
+        # delay: echoes `seconds` apart, each `feedback` times the one before.
+        delay: {seconds: 0.25, feedback: 0.4, repeats: 3}
+        # reverb: reflections that fade by 60 dB over `seconds`, at `mix` against the dry sound.
+        reverb: {seconds: 1.5, mix: 0.25}

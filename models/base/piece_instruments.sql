@@ -95,5 +95,17 @@ select
     coalesce((settings -> 'adsr' ->> 'r')::double, 0.05) as release_seconds,
     coalesce((settings ->> 'pan')::double, 0) as pan,
     (settings -> 'range' ->> 0) as lowest_note_name,
-    (settings -> 'range' ->> 1) as highest_note_name
+    (settings -> 'range' ->> 1) as highest_note_name,
+    -- an instrument has an effect when the key is there, even as {}; a piece turns one off with delay: null
+    case
+        when (settings -> 'delay') is not null
+            then coalesce((settings -> 'delay' ->> 'seconds')::double, 0.25)
+    end as delay_seconds,
+    coalesce((settings -> 'delay' ->> 'feedback')::double, 0.4) as delay_feedback,
+    coalesce((settings -> 'delay' ->> 'repeats')::integer, 3) as delay_repeats,
+    case
+        when (settings -> 'reverb') is not null
+            then coalesce((settings -> 'reverb' ->> 'seconds')::double, 1.5)
+    end as reverb_seconds,
+    coalesce((settings -> 'reverb' ->> 'mix')::double, 0.25) as reverb_mix
 from resolved
