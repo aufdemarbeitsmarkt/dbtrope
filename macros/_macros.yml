@@ -1,0 +1,9 @@
+macros:
+  - name: require_piece
+    description: >
+      Runs at the start of dbt build and dbt run (on-run-start in
+      dbt_project.yml). Rendering is the slow part of a build, so the piece
+      var must say what to render: a piece name, a path to a .yml file, or
+      `all`. Without it the run stops before anything is built, rather than
+      rendering every piece in pieces/ by accident. parse, compile, ls, show
+      and docs don't render, so they don't need it.

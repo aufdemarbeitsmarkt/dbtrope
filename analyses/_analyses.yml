@@ -1,0 +1,7 @@
+analyses:
+  - name: score_listing
+    description: >
+      The score as a musician would read it, one row per note or chord
+      (piece_id, voice_id, event_index), with its bar, beat and note names
+      spelled with sharps. Show one built piece with `make score
+      PIECE=nocturne`, or every built piece with PIECE=all or no PIECE.

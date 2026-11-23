@@ -1,4 +1,3 @@
-{# Fails for each combination of the columns that appears more than once. #}
 {% test unique_combination_of_columns(model, combination_of_columns) %}
 
 select

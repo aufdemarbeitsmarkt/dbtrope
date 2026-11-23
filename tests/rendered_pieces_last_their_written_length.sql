@@ -1,4 +1,3 @@
--- Fails for each piece whose WAV is missing or ends before its last event, rests included.
 with written_lengths as (
     select
         piece_id,

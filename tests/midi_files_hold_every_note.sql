@@ -1,4 +1,3 @@
--- Fails for each piece whose MIDI file is missing or holds a different number of notes from its score.
 with scored_notes as (
     select
         piece_id,

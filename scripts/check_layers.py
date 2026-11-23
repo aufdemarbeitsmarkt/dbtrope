@@ -9,8 +9,8 @@ Rules:
   - each layer may only ref() the layers listed in ALLOWED_UPSTREAM
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
-  - every model has a description
-  - models are documented in their directory's _<directory>.yml
+  - every model, seed, analysis, singular data test and macro (generic tests
+    included) has a description, written in its directory's _<directory>.yml
 """
 
 import json
@@ -61,14 +61,6 @@ def check(manifest: dict) -> list[str]:
         if layer != "intermediate" and name.startswith("int_"):
             errors.append(f"{name}: only models in intermediate/ use the int_ prefix")
 
-        if not (node.get("description") or "").strip():
-            errors.append(f"{name}: add a description: stating the model's grain")
-        directory = Path(node["original_file_path"]).parent
-        expected = f"{directory.as_posix()}/_{directory.name}.yml"
-        documented_in = (node.get("patch_path") or "").split("://", 1)[-1]
-        if documented_in != expected:
-            errors.append(f"{name}: document it in {expected}, not {documented_in or 'nowhere'}")
-
         for upstream_id in node["depends_on"]["nodes"]:
             upstream = nodes.get(upstream_id)
             if upstream is None or upstream["package_name"] != project:
@@ -80,6 +72,34 @@ def check(manifest: dict) -> list[str]:
                     f"{layer} may only read: {', '.join(sorted(ALLOWED_UPSTREAM[layer]))}"
                 )
 
+    errors.extend(check_documentation(manifest))
+    return errors
+
+
+def is_documented_resource(resource: dict) -> bool:
+    if resource["resource_type"] in ("model", "seed", "analysis", "macro"):
+        return True
+    # singular data tests are .sql files; generic tests are generated from YAML
+    return resource["resource_type"] == "test" and not resource.get("test_metadata")
+
+
+def check_documentation(manifest: dict) -> list[str]:
+    project = manifest["metadata"].get("project_name", "dbtrope")
+    errors = []
+    resources = list(manifest["nodes"].values()) + list(manifest["macros"].values())
+    for resource in sorted(resources, key=lambda r: r["original_file_path"]):
+        if resource["package_name"] != project or not is_documented_resource(resource):
+            continue
+        name = resource["name"]
+        kind = resource["resource_type"]
+        if not (resource.get("description") or "").strip():
+            what = "stating its grain" if kind == "model" else "saying what it does"
+            errors.append(f"{name}: add a description: {what}")
+        directory = Path(resource["original_file_path"]).parent
+        expected = f"{directory.as_posix()}/_{directory.name}.yml"
+        documented_in = (resource.get("patch_path") or "").split("://", 1)[-1]
+        if documented_in != expected:
+            errors.append(f"{name}: document it in {expected}, not {documented_in or 'nowhere'}")
     return errors
 
 

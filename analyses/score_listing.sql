@@ -1,11 +1,3 @@
-{#-
-    The score as a musician would read it: one row per note or chord, with
-    its bar and beat and note names. Show one piece with
-
-        make score PIECE=nocturne
-
-    or every built piece with PIECE=all or no PIECE.
--#}
 {#- the piece var can be a name or a path to a .yml file; either way the piece's id is the file name #}
 {%- set piece = (var('piece') or 'all').split('/') | last | replace('.yaml', '') | replace('.yml', '') %}
 
