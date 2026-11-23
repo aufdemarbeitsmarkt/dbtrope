@@ -10,7 +10,7 @@
 description: Describe the piece here.
 tempo: 120                      # quarter-note beats per minute
 meter: 4/4
-key: {root: C, scale: major}    # scale: any scale_name in seeds/scales.csv
+key: {root: C, scale: major}    # scale: any scale_name in seeds/seed_scales.csv
 seed: 0                         # seeds improvised voices; change it for another take
 
 # Instruments for this piece only. Voices can also name any stored
@@ -34,7 +34,7 @@ instruments:
 motifs:
   hook:
     notes: [C4, D4, E4, G4, E4, D4, C4, r]
-    beats: [e, e, e, e, q, q, h, h]     # numbers, or names from seeds/duration_aliases.csv
+    beats: [e, e, e, e, q, q, h, h]     # numbers, or names from seeds/seed_duration_aliases.csv
     velocities: [100, 80]               # 0 to 127; repeats like beats
 
 # Sections play one after another; a section lasts as long as its

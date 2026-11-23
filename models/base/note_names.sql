@@ -6,7 +6,7 @@ spelled_notes as (
     select
         (pitch_classes.pitch_name || octaves.octave) as note_name,
         (12 * (octaves.octave + 1) + pitch_classes.semitones_from_c) as midi_note
-    from {{ ref('pitch_classes') }} as pitch_classes
+    from {{ ref('seed_pitch_classes') }} as pitch_classes
     cross join octaves
 )
 

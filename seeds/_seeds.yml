@@ -1,5 +1,5 @@
 seeds:
-  - name: pitch_classes
+  - name: seed_pitch_classes
     description: >
       Every spelling of a pitch class, one row per pitch_name (C, C#, Db, …).
       semitones_from_c is the distance above C in the same octave number, so
@@ -12,7 +12,7 @@ seeds:
       - name: pitch_name
         data_tests: [unique, not_null]
 
-  - name: duration_aliases
+  - name: seed_duration_aliases
     description: >
       Names a piece can use in place of a number of beats, one row per
       duration_name: w, h, q, e and s for whole to sixteenth notes, with
@@ -25,7 +25,7 @@ seeds:
       - name: duration_name
         data_tests: [unique, not_null]
 
-  - name: scales
+  - name: seed_scales
     description: >
       The notes of each scale, one row per scale_name and scale_degree, as
       semitones above the root. Ported from trope's Scale.names, with
@@ -53,7 +53,7 @@ seeds:
               arguments:
                 expression: "between 0 and 11"
 
-  - name: roman_numerals
+  - name: seed_roman_numerals
     description: >
       Roman numerals for chords, one row per lowercase numeral, with the
       scale degree of the chord's root.

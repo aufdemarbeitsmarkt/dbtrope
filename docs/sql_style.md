@@ -311,6 +311,7 @@ Every directory of dbt resources is documented in one YAML file, named for the d
 ## Naming models
 
 - Models outside `intermediate/` have no layer prefix. Name them for what they hold: `pieces`, `piece_motifs`, `score_notes`, `mixed_samples`. Never `stg_`.
+- Seeds are named `seed_<name>.csv`, such as `seed_scales.csv`, so a `ref()` to one reads as a seed. No model uses the `seed_` prefix.
 - Intermediate models are named `int_{topic}__{transformation}`, where `transformation` is a verb for what happened: `int_events__improvised`, `int_notes__pitched`, `int_events__sequenced`.
 
 ## Influences

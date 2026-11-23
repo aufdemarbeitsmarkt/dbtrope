@@ -10,6 +10,7 @@ Rules:
     analyses may only ref() the layers in ANALYSIS_UPSTREAM
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
+  - seeds are named seed_<name>, and no model uses the seed_ prefix
   - every model, seed, analysis, singular data test and macro (generic tests
     included) has a description, written in its directory's _<directory>.yml
 """
@@ -48,6 +49,9 @@ def check(manifest: dict) -> list[str]:
     for unique_id, node in sorted(nodes.items()):
         if node["package_name"] != project:
             continue
+        if node["resource_type"] == "seed" and not node["name"].startswith("seed_"):
+            errors.append(f"{node['name']}: seeds are named seed_<name>")
+            continue
         if node["resource_type"] == "analysis":
             errors.extend(check_analysis(node, nodes, project))
             continue
@@ -70,6 +74,8 @@ def check(manifest: dict) -> list[str]:
             errors.append(f"{name}: intermediate models are named int_{{topic}}__{{transformation}}")
         if layer != "intermediate" and name.startswith("int_"):
             errors.append(f"{name}: only models in intermediate/ use the int_ prefix")
+        if name.startswith("seed_"):
+            errors.append(f"{name}: only seeds use the seed_ prefix")
 
         for upstream_id in node["depends_on"]["nodes"]:
             upstream = nodes.get(upstream_id)

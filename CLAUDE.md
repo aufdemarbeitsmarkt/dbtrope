@@ -21,6 +21,7 @@ The dev database is `dbtrope.duckdb` in the project root; override with `DBTROPE
 - Pieces and stored instruments are YAML files in `pieces/` and `instruments/`, not models. A file's name is the piece's or instrument's name. `base/piece_files` and `base/instruments` (Python) read them; nothing else touches the files.
 - Layers are directories under `models/`: `base/`, `intermediate/`, `core/`, `render/`. The table in `docs/sql_style.md` says what each may read. `core/` holds the objects render and analyses read (`sections`, `ensemble`, `score_notes`); `intermediate/` holds only the steps that build them.
 - Only `intermediate/` models have a prefix: `int_{topic}__{transformation}`. Never use `stg_`. Other models are named for what they hold.
+- Seeds are named `seed_<name>.csv` (`seed_scales.csv`); no model uses the `seed_` prefix.
 - Python only reads YAML files into JSON and writes WAV and MIDI bytes. Music logic belongs in SQL.
 - Randomness must be deterministic: derive it from `hash()` of a seed and an index, never `random()`.
 - Every directory of dbt resources has one YAML file, named for the directory with a leading underscore, documenting everything in it: `models/base/_base.yml`, `models/core/_core.yml`, `seeds/_seeds.yml`, `macros/_macros.yml`, `analyses/_analyses.yml`, `tests/_tests.yml`, `tests/generic/_generic.yml`. Never a per-resource `.yml`. Every model's `description:` states its grain; every seed, macro, analysis and singular test also gets one. Models go in lineage order, with that directory's unit tests. `make check` enforces this.

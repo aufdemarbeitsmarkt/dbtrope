@@ -216,10 +216,10 @@ unit_tests:
         format: sql
         rows: |
           select 'dorian' as scale_name, [0, 2, 3, 5, 7, 9, 10] as semitones_above_root, 7 as degree_count
-      - input: ref('pitch_classes')
+      - input: ref('seed_pitch_classes')
       - input: ref('note_names')
         rows: []
-      - input: ref('roman_numerals')
+      - input: ref('seed_roman_numerals')
     expect:
       rows:
         # D4, F4, B4 (dorian's raised sixth), D5
@@ -252,10 +252,10 @@ unit_tests:
         format: sql
         rows: |
           select 'dorian' as scale_name, [0, 2, 3, 5, 7, 9, 10] as semitones_above_root, 7 as degree_count
-      - input: ref('pitch_classes')
+      - input: ref('seed_pitch_classes')
       - input: ref('note_names')
         rows: []
-      - input: ref('roman_numerals')
+      - input: ref('seed_roman_numerals')
     expect:
       rows:
         # i: D3 F3 A3
@@ -283,13 +283,13 @@ unit_tests:
           - {piece_id: p, key_root: C, scale_name: major}
       - input: ref('scale_semitones')
         rows: []
-      - input: ref('pitch_classes')
+      - input: ref('seed_pitch_classes')
         rows: []
       - input: ref('note_names')
         rows:
           - {note_name: Bb4, midi_note: 70}
           - {note_name: Cb4, midi_note: 59}
-      - input: ref('roman_numerals')
+      - input: ref('seed_roman_numerals')
         rows: []
     expect:
       rows:
@@ -319,12 +319,12 @@ unit_tests:
         format: sql
         rows: |
           select 'major' as scale_name, [0, 2, 4, 5, 7, 9, 11] as semitones_above_root, 7 as degree_count
-      - input: ref('pitch_classes')
+      - input: ref('seed_pitch_classes')
       - input: ref('note_names')
         rows:
           - {note_name: E4, midi_note: 64}
           - {note_name: G4, midi_note: 67}
-      - input: ref('roman_numerals')
+      - input: ref('seed_roman_numerals')
     expect:
       rows:
         - {voice_id: degrees, event_index: 1, midi_note: null}
@@ -353,7 +353,7 @@ unit_tests:
           - {piece_id: p, section_name: a, voice_id: plain, repeat_count: 2, is_retrograde: false, augmentation: 1}
           - {piece_id: p, section_name: a, voice_id: backwards, repeat_count: 1, is_retrograde: true, augmentation: 1}
           - {piece_id: p, section_name: a, voice_id: twice_as_slow, repeat_count: 1, is_retrograde: false, augmentation: 2}
-      - input: ref('duration_aliases')
+      - input: ref('seed_duration_aliases')
         rows:
           - {duration_name: q, duration_beats: 1}
           - {duration_name: h, duration_beats: 2}
