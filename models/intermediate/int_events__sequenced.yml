@@ -1,0 +1,73 @@
+models:
+  - name: int_events__sequenced
+    description: >
+      Each event a voice plays within its section, after repeats,
+      retrograde and augmentation, one row per piece_id, section_name,
+      voice_id, repetition_index and event_index. start_beats counts from
+      the start of the section; a voice's events follow one another
+      without gaps.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, repetition_index, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: repetition_index
+        description: Which time through the voice's events this is, from 1.
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's pitch list as written, from 1.
+        data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
+      - name: start_beats
+        description: Beats from the start of the section.
+        data_tests: [not_null]
+      - name: duration_beats
+        description: >
+          The duration_spec as a number of beats, times the voice's
+          augmentation. Null means the spec was neither a number nor a
+          duration_aliases name, which fails the test.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+
+unit_tests:
+  - name: voices_repeat_retrograde_and_augment
+    model: int_events__sequenced
+    given:
+      - input: ref('piece_voice_events')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: plain, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: plain, event_index: 2, velocity: 100, duration_spec: h}
+          - {piece_id: p, section_name: a, voice_id: backwards, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: backwards, event_index: 2, velocity: 100, duration_spec: h}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, event_index: 2, velocity: 100, duration_spec: "0.5"}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: plain, repeat_count: 2, is_retrograde: false, augmentation: 1}
+          - {piece_id: p, section_name: a, voice_id: backwards, repeat_count: 1, is_retrograde: true, augmentation: 1}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, repeat_count: 1, is_retrograde: false, augmentation: 2}
+      - input: ref('duration_aliases')
+        rows:
+          - {duration_name: q, duration_beats: 1}
+          - {duration_name: h, duration_beats: 2}
+    expect:
+      rows:
+        - {voice_id: plain, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 1}
+        - {voice_id: plain, repetition_index: 1, event_index: 2, start_beats: 1, duration_beats: 2}
+        - {voice_id: plain, repetition_index: 2, event_index: 1, start_beats: 3, duration_beats: 1}
+        - {voice_id: plain, repetition_index: 2, event_index: 2, start_beats: 4, duration_beats: 2}
+        # the half note now comes first
+        - {voice_id: backwards, repetition_index: 1, event_index: 2, start_beats: 0, duration_beats: 2}
+        - {voice_id: backwards, repetition_index: 1, event_index: 1, start_beats: 2, duration_beats: 1}
+        - {voice_id: twice_as_slow, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 2}
+        - {voice_id: twice_as_slow, repetition_index: 1, event_index: 2, start_beats: 2, duration_beats: 1}

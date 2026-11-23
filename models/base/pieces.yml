@@ -4,6 +4,11 @@ models:
       Every piece in the project, one row per piece_id, with its piece-wide
       settings and the full score as JSON. Pieces are listed in
       macros/registry.sql, which `make registry` writes.
+    data_tests:
+      # a piece is written either as voices or as sections of voices
+      - expression_is_true:
+          arguments:
+            expression: "(score -> 'voices') is null or (score -> 'sections') is null"
     columns:
       - name: piece_id
         description: The piece model's name.

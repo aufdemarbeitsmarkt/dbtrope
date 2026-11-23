@@ -1,15 +1,16 @@
 models:
   - name: int_notes__pitched
     description: >
-      Each tone with its pitch resolved, one row per piece_id, voice_id,
-      event_index and chord_tone_index. A note, scale degree or rest is one
-      tone; a chord is one tone per chord member. Rests have no midi_note or
+      Each tone a voice writes with its pitch resolved, one row per
+      piece_id, section_name, voice_id, event_index and chord_tone_index. A
+      note, scale degree or rest is one tone; a chord is one tone per chord
+      member. An inverted voice is mirrored around its first written pitch. Rests have no midi_note or
       frequency_hz. Frequencies are equal-tempered with A4 (MIDI 69) at
       440 Hz.
     data_tests:
       - unique_combination_of_columns:
           arguments:
-            combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index]
+            combination_of_columns: [piece_id, section_name, voice_id, event_index, chord_tone_index]
       # a sounding tone without a midi_note had a pitch_spec that couldn't be read
       - expression_is_true:
           arguments:
@@ -17,9 +18,12 @@ models:
     columns:
       - name: piece_id
         data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
       - name: voice_id
         data_tests: [not_null]
       - name: event_index
+        description: The event's position in the voice's pitch list as written, from 1.
         data_tests: [not_null]
       - name: chord_tone_index
         description: The tone's position in its chord, root first; 1 for single notes.
@@ -39,20 +43,20 @@ unit_tests:
   - name: degrees_resolve_in_d_dorian
     model: int_notes__pitched
     given:
-      - input: ref('int_events__timed')
+      - input: ref('piece_voice_events')
         rows:
-          - {piece_id: p, voice_id: v, event_index: 1, pitch_spec: "1"}
-          - {piece_id: p, voice_id: v, event_index: 2, pitch_spec: "3"}
-          - {piece_id: p, voice_id: v, event_index: 3, pitch_spec: "6"}
-          - {piece_id: p, voice_id: v, event_index: 4, pitch_spec: "8"}
-          - {piece_id: p, voice_id: v, event_index: 5, pitch_spec: "0"}
-          - {piece_id: p, voice_id: v, event_index: 6, pitch_spec: "-1"}
-          - {piece_id: p, voice_id: v, event_index: 7, pitch_spec: "#3"}
-          - {piece_id: p, voice_id: v, event_index: 8, pitch_spec: "bb7"}
-          - {piece_id: p, voice_id: v, event_index: 9, pitch_spec: r}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: "1"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: "3"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 3, pitch_spec: "6"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 4, pitch_spec: "8"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 5, pitch_spec: "0"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 6, pitch_spec: "-1"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 7, pitch_spec: "#3"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 8, pitch_spec: "bb7"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 9, pitch_spec: r}
       - input: ref('piece_voices')
         rows:
-          - {piece_id: p, voice_id: v, pitch_kind: degrees, octave: 4, transpose_semitones: 0}
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: degrees, octave: 4, transpose_semitones: 0, is_inverted: false}
       - input: ref('pieces')
         rows:
           - {piece_id: p, key_root: D, scale_name: dorian}
@@ -82,13 +86,13 @@ unit_tests:
   - name: chords_stack_thirds_in_the_key
     model: int_notes__pitched
     given:
-      - input: ref('int_events__timed')
+      - input: ref('piece_voice_events')
         rows:
-          - {piece_id: p, voice_id: v, event_index: 1, pitch_spec: i}
-          - {piece_id: p, voice_id: v, event_index: 2, pitch_spec: IV7}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: i}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: IV7}
       - input: ref('piece_voices')
         rows:
-          - {piece_id: p, voice_id: v, pitch_kind: chords, octave: 3, transpose_semitones: 0}
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: chords, octave: 3, transpose_semitones: 0, is_inverted: false}
       - input: ref('pieces')
         rows:
           - {piece_id: p, key_root: D, scale_name: dorian}
@@ -115,13 +119,13 @@ unit_tests:
   - name: note_names_resolve_and_transpose
     model: int_notes__pitched
     given:
-      - input: ref('int_events__timed')
+      - input: ref('piece_voice_events')
         rows:
-          - {piece_id: p, voice_id: v, event_index: 1, pitch_spec: Bb4}
-          - {piece_id: p, voice_id: v, event_index: 2, pitch_spec: Cb4}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: Bb4}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: Cb4}
       - input: ref('piece_voices')
         rows:
-          - {piece_id: p, voice_id: v, pitch_kind: notes, octave: 4, transpose_semitones: 2}
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: notes, octave: 4, transpose_semitones: 2, is_inverted: false}
       - input: ref('pieces')
         rows:
           - {piece_id: p, key_root: C, scale_name: major}
@@ -139,3 +143,44 @@ unit_tests:
       rows:
         - {event_index: 1, midi_note: 72}
         - {event_index: 2, midi_note: 61}
+
+  - name: inverted_voices_mirror_around_their_first_pitch
+    model: int_notes__pitched
+    given:
+      - input: ref('piece_voice_events')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 1, pitch_spec: r}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 2, pitch_spec: "3"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 3, pitch_spec: "5"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 4, pitch_spec: "#4"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 5, pitch_spec: "1"}
+          - {piece_id: p, section_name: a, voice_id: notes, event_index: 1, pitch_spec: E4}
+          - {piece_id: p, section_name: a, voice_id: notes, event_index: 2, pitch_spec: G4}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: degrees, pitch_kind: degrees, octave: 4, transpose_semitones: 0, is_inverted: true}
+          - {piece_id: p, section_name: a, voice_id: notes, pitch_kind: notes, octave: 4, transpose_semitones: 12, is_inverted: true}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, key_root: C, scale_name: major}
+      - input: ref('int_theory__scales')
+        format: sql
+        rows: |
+          select 'major' as scale_name, [0, 2, 4, 5, 7, 9, 11] as semitones_above_root, 7 as degree_count
+      - input: ref('pitch_classes')
+      - input: ref('int_theory__note_names')
+        rows:
+          - {note_name: E4, midi_note: 64}
+          - {note_name: G4, midi_note: 67}
+      - input: ref('roman_numerals')
+    expect:
+      rows:
+        - {voice_id: degrees, event_index: 1, midi_note: null}
+        # around degree 3 (E4): 5 becomes 1 (C4), #4 becomes b2 (Db4), 1 becomes 5 (G4)
+        - {voice_id: degrees, event_index: 2, midi_note: 64}
+        - {voice_id: degrees, event_index: 3, midi_note: 60}
+        - {voice_id: degrees, event_index: 4, midi_note: 61}
+        - {voice_id: degrees, event_index: 5, midi_note: 67}
+        # by semitones around E4, then up an octave: G4 becomes C#4, then C#5
+        - {voice_id: notes, event_index: 1, midi_note: 76}
+        - {voice_id: notes, event_index: 2, midi_note: 73}

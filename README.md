@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 5, instruments. Pieces are written in note names, scale degrees or chords, played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
+> Status: milestone 6, form and transforms. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity and stereo pan.
 
 ## Quick start
 
@@ -84,6 +84,38 @@ voices:
 
 A voice uses exactly one of `notes`, `degrees` and `chords`.
 
+### Sections, motifs and form
+
+Longer pieces are built from sections. Each section has its own `voices`, and `form` sets the order the sections play in:
+
+```yaml
+# meta
+motifs:
+  hook:
+    notes: [C4, D4, E4, G4, E4, D4, C4, r]
+    beats: [e, e, e, e, q, q, h, h]
+sections:
+  verse:
+    voices:
+      - {name: melody, motif: hook, repeat: 2}
+      - {name: chords, octave: 3, chords: [I, vi, IV, V7], beats: [w]}
+  bridge:
+    voices:
+      - {name: melody, motif: hook, retrograde: true, invert: true, augment: 0.5, repeat: 2}
+      - {name: chords, octave: 3, chords: [IV, V], beats: [w]}
+form: [verse, bridge, verse]
+```
+
+- **sections**: named groups of voices. A section lasts as long as its longest voice, and the next one starts when it ends. The build warns if a section doesn't fill whole bars of the `meter`. Voices with the same name in different sections are one voice in the score.
+- **form**: the order the sections play in, repeats allowed. Leave it out to play each section once, in the order written.
+- **motifs**: named phrases. A voice plays one with `motif: <name>`; the motif can hold any voice keys, and the voice's own keys win, so `{motif: hook, octave: 5}` or `{motif: hook, beats: [q]}` change one thing.
+- **repeat**: play the voice's events this many times in a row.
+- **retrograde**: play them last to first, each keeping its own length.
+- **invert**: mirror every pitch around the voice's first written pitch, within the scale for degrees and chords and by semitones for note names.
+- **augment**: multiply every length: `2` doubles them, `0.5` halves them.
+
+Each transform is a key of its own, so the order they are written in doesn't matter. A piece written with top-level `voices` and no `sections`, like `ditty` and `lullaby`, is one section.
+
 ### Instruments
 
 An instrument is a set of harmonics and an envelope. Store one in `models/instruments/` to use it from any piece, the same way a piece is stored:
@@ -139,8 +171,8 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 
 ## How a note becomes sound
 
-1. `base/` flattens each piece's JSON into `pieces`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
-2. `int_events__timed` turns beats into start times and seconds; `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies.
+1. `base/` flattens each piece's JSON into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
+2. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
 3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
 5. `mixed_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains, sums everything by `sample_index`, fills gaps with silence and normalises each piece.

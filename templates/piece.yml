@@ -4,8 +4,9 @@
 #
 # which writes models/pieces/my_piece.yml from this file (with __NAME__
 # replaced and these header lines dropped) and a one-line my_piece.sql.
-# Every key is optional except voices; delete what you don't need. ditty and
-# lullaby in models/pieces/ are finished examples.
+# Every key is optional except sections (or voices, for a piece with only
+# one section); delete what you don't need. ditty and lullaby in
+# models/pieces/ are finished examples.
 models:
   - name: __NAME__
     description: Describe the piece here.
@@ -29,26 +30,61 @@ models:
             range: [C2, C6]
             pan: -0.2
 
-        voices:
-          # note names: C4 is middle C; # and b for sharps and flats; r is a rest
-          - name: melody
-            instrument: lead
+        # Motifs are phrases that voices can play, by name, in any section.
+        # A motif holds any keys a voice can have; the voice's own keys win.
+        motifs:
+          hook:
             notes: [C4, D4, E4, G4, E4, D4, C4, r]
-            beats: [q, q, q, q, q, q, h, h]     # numbers, or names from seeds/duration_aliases.csv
+            beats: [e, e, e, e, q, q, h, h]     # numbers, or names from seeds/duration_aliases.csv
             velocities: [100, 80]               # 0 to 127; repeats like beats
 
-          # chords: Roman numerals stacked in thirds within the key; add 7 for a seventh
-          - name: chords
-            instrument: organ
-            velocity: 70
-            octave: 3
-            chords: [I, vi, IV, V7]
-            beats: [w]
+        # Sections play one after another; a section lasts as long as its
+        # longest voice. Voices with the same name in different sections are
+        # one voice in the score.
+        sections:
+          verse:
+            voices:
+              # note names: C4 is middle C; # and b for sharps and flats; r is a rest
+              - name: melody
+                instrument: lead
+                motif: hook
+                repeat: 2                       # play it twice in a row
 
-          # scale degrees: 1 is the key's root in this octave; 8 is an octave up
-          - name: bass
-            instrument: warm_bass
-            octave: 2
-            degrees: [1, 6, 4, 5]
-            beats: [w]
-            transpose: 0                        # semitones added to every pitch
+              # chords: Roman numerals stacked in thirds within the key; add 7 for a seventh
+              - name: chords
+                instrument: organ
+                velocity: 70
+                octave: 3
+                chords: [I, vi, IV, V7]
+                beats: [w]
+
+              # scale degrees: 1 is the key's root in this octave; 8 is an octave up
+              - name: bass
+                instrument: warm_bass
+                octave: 2
+                degrees: [1, 6, 4, 5]
+                beats: [w]
+                transpose: 0                    # semitones added to every pitch
+
+          bridge:
+            voices:
+              # the hook transformed: each of these is optional
+              - name: melody
+                instrument: lead
+                motif: hook
+                retrograde: true                # play it backwards, rhythm included
+                invert: true                    # mirror it around its first pitch
+                augment: 0.5                    # halve every length; 2 doubles them
+                repeat: 2
+                transpose: 7
+
+              - name: chords
+                instrument: organ
+                velocity: 70
+                octave: 3
+                chords: [IV, V]
+                beats: [w]
+
+        # The order sections play in; a section can come back. Leave it out
+        # to play each section once, in the order written.
+        form: [verse, bridge, verse]

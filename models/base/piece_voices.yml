@@ -1,13 +1,14 @@
 models:
   - name: piece_voices
     description: >
-      Each voice of each piece, one row per piece_id and voice_id, with its
-      settings and its YAML as JSON. A voice without a name is called
-      voice_<n>.
+      Each voice of each section of each piece, one row per piece_id,
+      section_name and voice_id, with its settings and its YAML as JSON. A
+      voice without a name is called voice_<n>. A voice that plays a motif
+      has the motif's keys merged under its own.
     data_tests:
       - unique_combination_of_columns:
           arguments:
-            combination_of_columns: [piece_id, voice_id]
+            combination_of_columns: [piece_id, section_name, voice_id]
     columns:
       - name: piece_id
         data_tests:
@@ -16,11 +17,25 @@ models:
               arguments:
                 to: ref('pieces')
                 field: piece_id
+      - name: section_name
+        description: The section the voice plays in; main for a piece written without sections.
+        data_tests: [not_null]
       - name: voice_id
+        description: >
+          The voice's name. Voices with the same name in different sections
+          are one voice in the score, like a track.
         data_tests: [not_null]
       - name: voice_index
-        description: The voice's position in the piece's voices list, from 1.
+        description: The voice's position in its section's voices list, from 1.
         data_tests: [not_null]
+      - name: motif_name
+        description: The motif the voice plays, if any.
+      - name: is_motif_defined
+        description: False when the voice names a motif the piece doesn't have, which fails the test.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
       - name: pitch_kind
         description: Which list the voice is written in, notes, degrees or chords.
         data_tests:
@@ -55,5 +70,30 @@ models:
           - expression_is_true:
               arguments:
                 expression: "between 0 and 127"
+      - name: repeat_count
+        description: How many times the voice plays its events in a row. Defaults to 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+      - name: is_retrograde
+        description: True when the voice plays its events backwards, rhythm included.
+        data_tests: [not_null]
+      - name: is_inverted
+        description: >
+          True when the voice mirrors its pitches around its first written
+          pitch: within the scale for degrees and chords, by semitones for
+          note names.
+        data_tests: [not_null]
+      - name: augmentation
+        description: >
+          What every length is multiplied by: 2 doubles them (augmentation),
+          0.5 halves them (diminution). Defaults to 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
       - name: voice
-        description: The voice's YAML as JSON.
+        description: The voice's YAML as JSON, with its motif's keys merged in.

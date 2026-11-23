@@ -38,6 +38,19 @@ def models_in(directory: Path) -> dict[str, dict]:
     return dict(sorted(models.items()))
 
 
+def piece_voices(meta: dict) -> list[dict]:
+    """Every voice in the piece, with its motif's keys merged under its own,
+    as base/piece_voices does. A piece without sections is one section."""
+    motifs = meta.get("motifs") or {}
+    sections = meta.get("sections") or {"main": {"voices": meta.get("voices")}}
+    voices = []
+    for section in sections.values():
+        for voice in (section or {}).get("voices") or []:
+            motif = motifs.get(voice.get("motif")) or {}
+            voices.append({**motif, **voice})
+    return voices
+
+
 def stored_instruments_used(piece: dict) -> list[str]:
     """Same lookup as base/piece_instruments: a voice's instrument is the
     piece's own declaration if there is one (which may `use:` a stored
@@ -48,7 +61,7 @@ def stored_instruments_used(piece: dict) -> list[str]:
     for declaration in declared.values():
         if isinstance(declaration, dict) and declaration.get("use"):
             used.add(declaration["use"])
-    for voice in meta.get("voices") or []:
+    for voice in piece_voices(meta):
         name = voice.get("instrument") or DEFAULT_INSTRUMENT
         if name not in declared:
             used.add(name)

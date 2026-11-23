@@ -1,6 +1,7 @@
 with voice_lists as (
     select
         piece_id,
+        section_name,
         voice_id,
         velocity,
         from_json(voice -> pitch_kind, '["varchar"]') as pitch_specs,
@@ -13,6 +14,7 @@ with voice_lists as (
 unnested_events as (
     select
         piece_id,
+        section_name,
         voice_id,
         velocity,
         duration_specs,
@@ -24,6 +26,7 @@ unnested_events as (
 
 select
     piece_id,
+    section_name,
     voice_id,
     event_index,
     pitch_spec,
