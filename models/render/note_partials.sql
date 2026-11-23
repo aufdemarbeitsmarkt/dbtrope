@@ -11,7 +11,7 @@ with note_events as (
         velocity,
         start_seconds,
         duration_seconds
-    from {{ ref('int_score__note_events') }}
+    from {{ ref('score_notes') }}
 ),
 
 instruments as (
@@ -24,7 +24,7 @@ instruments as (
         sustain_level,
         greatest(release_seconds, 1 / {{ sample_rate }}) as release_seconds,
         pan
-    from {{ ref('int_instruments__ranged') }}
+    from {{ ref('ensemble') }}
 ),
 
 partials as (
@@ -34,7 +34,7 @@ partials as (
         partial_index,
         frequency_ratio,
         partial_amplitude
-    from {{ ref('int_instruments__partials') }}
+    from {{ ref('instrument_partials') }}
 ),
 
 note_partials as (

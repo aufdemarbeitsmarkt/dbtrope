@@ -19,7 +19,7 @@ effect_taps as (
         round(delay_seconds * {{ sample_rate }})::bigint as delay_sample_count,
         left_gain,
         right_gain
-    from {{ ref('int_instruments__effect_taps') }}
+    from {{ ref('instrument_effect_taps') }}
 ),
 
 -- the dry sound, every echo and every reverb reflection, each a shifted, scaled copy of its instrument's samples
@@ -51,7 +51,7 @@ written_lengths as (
     select
         piece_id,
         ceil(max(start_seconds + duration_seconds) * {{ sample_rate }})::bigint as sample_count
-    from {{ ref('int_events__timed') }}
+    from {{ ref('sections') }}
     group by piece_id
 ),
 
@@ -63,7 +63,7 @@ sounding_lengths as (
     group by piece_id
 ),
 
--- a piece lasts until its last event ends, rests included, or its last release or echo fades, whichever is later
+-- a piece lasts until its last section ends, trailing rests included, or its last release or echo fades, whichever is later
 piece_lengths as (
     select
         written_lengths.piece_id,

@@ -15,11 +15,11 @@ and `output/<piece>.mid`.
 - **Instruments** are rows of `instruments`, one per file in
   `instruments/`. `piece_instruments` shows which instruments each piece
   uses and how each was resolved.
-- **The score** is `int_score__note_events`: one row per sounding note,
+- **The score** is `score_notes`: one row per sounding note,
   with its section, instrument, pitch, velocity and timing. To read a
   piece by bar and beat, run `make score PIECE=<piece>`.
 - **Sections** as the form plays them, with their start times, are in
-  `int_sections__timed`.
+  `sections`.
 - **The rendered files** are listed by `render_wav` and `render_midi`, and
   by the `rendered_pieces` exposure.
 
@@ -27,8 +27,9 @@ and `output/<piece>.mid`.
 
 | Layer | Holds |
 |---|---|
-| `base/` | Piece and instrument files read and flattened into rows |
-| `intermediate/` | Improvisation, pitch, timing, form and the score |
+| `base/` | Theory tables from seeds; piece and instrument files read and flattened into rows |
+| `intermediate/` | The steps that build the score: improvisation, pitch and sequencing |
+| `core/` | What render and analyses read: sections, the ensemble and the score |
 | `render/` | Partials, per-instrument samples, effects, the mix, WAV and MIDI |
 
 The lineage graph runs left to right through these layers, from

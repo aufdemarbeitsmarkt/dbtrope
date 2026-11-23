@@ -43,7 +43,7 @@ note_names as (
     select
         note_name,
         midi_note
-    from {{ ref('int_theory__note_names') }}
+    from {{ ref('note_names') }}
 ),
 
 pitch_classes as (
@@ -58,7 +58,7 @@ scales as (
         scale_name,
         semitones_above_root,
         degree_count
-    from {{ ref('int_theory__scales') }}
+    from {{ ref('scale_semitones') }}
 ),
 
 roman_numerals as (

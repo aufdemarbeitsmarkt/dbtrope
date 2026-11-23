@@ -16,7 +16,7 @@ note_names as (
     select
         note_name,
         midi_note
-    from {{ ref('int_theory__note_names') }}
+    from {{ ref('note_names') }}
 )
 
 select

@@ -1,7 +1,31 @@
-# Every model in base/: piece and instrument YAML flattened into rows.
-# Models are in lineage order.
+# Every model in base/: music theory tables from seeds, and piece and
+# instrument YAML flattened into rows. Models are in lineage order.
 
 models:
+  - name: note_names
+    description: >
+      Every spelled note name in MIDI range, one row per note_name (C4, C#4,
+      Db4, …), with its MIDI note. Octaves follow scientific pitch notation:
+      C4 is middle C, MIDI 60. Enharmonic spellings share a midi_note.
+    columns:
+      - name: note_name
+        data_tests: [unique, not_null]
+      - name: midi_note
+        data_tests: [not_null]
+
+  - name: scale_semitones
+    description: >
+      Each scale as a list, one row per scale_name. semitones_above_root[n]
+      is scale degree n's distance above the root, for n from 1 to
+      degree_count.
+    columns:
+      - name: scale_name
+        data_tests: [unique, not_null]
+      - name: semitones_above_root
+        data_tests: [not_null]
+      - name: degree_count
+        data_tests: [not_null]
+
   - name: piece_files
     description: >
       The piece files the build reads, one row per piece_id, with each

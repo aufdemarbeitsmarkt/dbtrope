@@ -2,7 +2,7 @@ with scored_notes as (
     select
         piece_id,
         count(*) as note_count
-    from {{ ref('int_score__note_events') }}
+    from {{ ref('score_notes') }}
     where velocity > 0
     group by piece_id
 )

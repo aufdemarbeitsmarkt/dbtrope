@@ -6,7 +6,8 @@ Run after `dbt parse` (or any dbt command that writes target/manifest.json):
 
 Rules:
   - a model's layer is the first directory under models/
-  - each layer may only ref() the layers listed in ALLOWED_UPSTREAM
+  - each layer may only ref() the layers listed in ALLOWED_UPSTREAM, and
+    analyses may only ref() the layers in ANALYSIS_UPSTREAM
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
   - every model, seed, analysis, singular data test and macro (generic tests
@@ -21,8 +22,12 @@ from pathlib import Path
 ALLOWED_UPSTREAM = {
     "base": {"base", "seed"},
     "intermediate": {"base", "intermediate", "seed"},
-    "render": {"intermediate", "render"},
+    "core": {"base", "intermediate", "core", "seed"},
+    "render": {"core", "render"},
 }
+
+# analyses read the objects core/ and render/ finish, never the steps that build them
+ANALYSIS_UPSTREAM = {"core", "render"}
 
 INTERMEDIATE_NAME = re.compile(r"^int_[a-z0-9]+(_[a-z0-9]+)*__[a-z0-9]+(_[a-z0-9]+)*$")
 
@@ -41,7 +46,12 @@ def check(manifest: dict) -> list[str]:
     errors = []
 
     for unique_id, node in sorted(nodes.items()):
-        if node["resource_type"] != "model" or node["package_name"] != project:
+        if node["package_name"] != project:
+            continue
+        if node["resource_type"] == "analysis":
+            errors.extend(check_analysis(node, nodes, project))
+            continue
+        if node["resource_type"] != "model":
             continue
 
         name = node["name"]
@@ -73,6 +83,21 @@ def check(manifest: dict) -> list[str]:
                 )
 
     errors.extend(check_documentation(manifest))
+    return errors
+
+
+def check_analysis(node: dict, nodes: dict, project: str) -> list[str]:
+    errors = []
+    for upstream_id in node["depends_on"]["nodes"]:
+        upstream = nodes.get(upstream_id)
+        if upstream is None or upstream["package_name"] != project:
+            continue
+        upstream_layer = layer_of(upstream)
+        if upstream_layer not in ANALYSIS_UPSTREAM:
+            errors.append(
+                f"{node['name']} (analysis) reads {upstream['name']} ({upstream_layer}); "
+                f"analyses may only read: {', '.join(sorted(ANALYSIS_UPSTREAM))}"
+            )
     return errors
 
 

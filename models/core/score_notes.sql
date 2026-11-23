@@ -1,17 +1,62 @@
-with timed_events as (
+with sequenced_events as (
+    select
+        piece_id,
+        section_name,
+        voice_id,
+        event_index,
+        velocity,
+        start_beats,
+        duration_beats
+    from {{ ref('int_events__sequenced') }}
+),
+
+sections as (
+    select
+        piece_id,
+        form_index,
+        section_name,
+        start_beats,
+        tempo_bpm
+    from {{ ref('sections') }}
+),
+
+-- a section the form plays more than once has its events placed each time
+events_in_form as (
+    select
+        sequenced_events.piece_id,
+        sequenced_events.voice_id,
+        sections.form_index,
+        sequenced_events.section_name,
+        sequenced_events.event_index as written_event_index,
+        sequenced_events.velocity,
+        (sections.start_beats + sequenced_events.start_beats) as start_beats,
+        sequenced_events.duration_beats,
+        sections.tempo_bpm
+    from sequenced_events
+    join sections
+        on sections.piece_id = sequenced_events.piece_id
+        and sections.section_name = sequenced_events.section_name
+),
+
+-- numbered before rests are dropped, so a voice's event_index counts its rests
+timed_events as (
     select
         piece_id,
         voice_id,
-        event_index,
+        -- a voice's events never overlap, so their start times order them
+        row_number() over (
+            partition by piece_id, voice_id
+            order by start_beats
+        ) as event_index,
         form_index,
         section_name,
         written_event_index,
         velocity,
         start_beats,
         duration_beats,
-        start_seconds,
-        duration_seconds
-    from {{ ref('int_events__timed') }}
+        (start_beats * 60 / tempo_bpm) as start_seconds,
+        (duration_beats * 60 / tempo_bpm) as duration_seconds
+    from events_in_form
 ),
 
 pitched_tones as (
@@ -42,7 +87,7 @@ instrument_ranges as (
         instrument_name,
         lowest_midi_note,
         highest_midi_note
-    from {{ ref('int_instruments__ranged') }}
+    from {{ ref('ensemble') }}
 )
 
 select

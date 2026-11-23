@@ -2,7 +2,7 @@ with written_lengths as (
     select
         piece_id,
         max(start_seconds + duration_seconds) as written_seconds
-    from {{ ref('int_events__timed') }}
+    from {{ ref('sections') }}
     group by piece_id
 )
 
