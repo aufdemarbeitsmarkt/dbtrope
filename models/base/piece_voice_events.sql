@@ -1,17 +1,20 @@
 with voice_lists as (
     select
         piece_id,
+        section_name,
         voice_id,
         velocity,
         from_json(voice -> pitch_kind, '["varchar"]') as pitch_specs,
-        coalesce(from_json(voice -> 'beats', '["varchar"]'), ['1']) as duration_specs,
-        from_json(voice -> 'velocities', '["integer"]') as velocities
+        -- an empty beats or velocities list counts as leaving it out, and can't be repeated below
+        coalesce(nullif(from_json(voice -> 'beats', '["varchar"]'), []), ['1']) as duration_specs,
+        nullif(from_json(voice -> 'velocities', '["integer"]'), []) as velocities
     from {{ ref('piece_voices') }}
 ),
 
 unnested_events as (
     select
         piece_id,
+        section_name,
         voice_id,
         velocity,
         duration_specs,
@@ -23,6 +26,7 @@ unnested_events as (
 
 select
     piece_id,
+    section_name,
     voice_id,
     event_index,
     pitch_spec,

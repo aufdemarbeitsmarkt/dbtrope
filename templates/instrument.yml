@@ -2,23 +2,25 @@
 #
 #     make new-instrument NAME=my_instrument
 #
-# which writes models/instruments/my_instrument.yml from this file (with
-# __NAME__ replaced and these header lines dropped) and a one-line
-# my_instrument.sql. Any piece can then play it with
-# `instrument: my_instrument`, or start from it with `use: my_instrument`.
-models:
-  - name: __NAME__
-    description: Describe the instrument's sound here.
-    config:
-      meta:
-        # Harmonics as [frequency ratio, amplitude]. Ratio 1 is the note itself;
-        # whole numbers sound harmonic, others (2.76, 5.4) sound bell-like.
-        # Amplitudes are relative and rescaled to sum to 1.
-        partials: [[1, 1], [2, 0.4], [3, 0.2]]
-        # Attack, decay and release in seconds; sustain is a level from 0 to 1.
-        # The release starts when the note's written length ends.
-        adsr: {a: 0.01, d: 0.2, s: 0.6, r: 0.3}
-        # Lowest and highest notes it should play; notes outside make the build warn.
-        range: [C2, C6]
-        # Stereo position from -1 (left) to 1 (right).
-        pan: 0
+# which writes instruments/my_instrument.yml from everything below the header
+# line. Any piece can then play it with `instrument: my_instrument`, or start
+# from it with `use: my_instrument`.
+# --- end of template header ---
+description: Describe the instrument's sound here.
+# Harmonics as [frequency ratio, amplitude]. Ratio 1 is the note itself;
+# whole numbers sound harmonic, others (2.76, 5.4) sound bell-like.
+# Amplitudes are relative and rescaled to sum to 1.
+partials: [[1, 1], [2, 0.4], [3, 0.2]]
+# Attack, decay and release in seconds; sustain is a level from 0 to 1.
+# The release starts when the note's written length ends.
+adsr: {a: 0.01, d: 0.2, s: 0.6, r: 0.3}
+# Lowest and highest notes it should play; notes outside make the build warn.
+range: [C2, C6]
+# Stereo position from -1 (left) to 1 (right).
+pan: 0
+# Optional effects; delete either line to leave it off. A piece can
+# turn one off for itself with `delay: null` or `reverb: null`.
+# delay: echoes `seconds` apart, each `feedback` times the one before.
+delay: {seconds: 0.25, feedback: 0.4, repeats: 3}
+# reverb: reflections that fade by 60 dB over `seconds`, at `mix` against the dry sound.
+reverb: {seconds: 1.5, mix: 0.25}

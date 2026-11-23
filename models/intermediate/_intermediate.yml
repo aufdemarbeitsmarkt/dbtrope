@@ -1,0 +1,703 @@
+# Every model in intermediate/: improvisation, pitch, timing, form and the score.
+# Models are in lineage order.
+
+models:
+  - name: int_theory__note_names
+    description: >
+      Every spelled note name in MIDI range, one row per note_name (C4, C#4,
+      Db4, …), with its MIDI note. Octaves follow scientific pitch notation:
+      C4 is middle C, MIDI 60. Enharmonic spellings share a midi_note.
+    columns:
+      - name: note_name
+        data_tests: [unique, not_null]
+      - name: midi_note
+        data_tests: [not_null]
+
+  - name: int_theory__scales
+    description: >
+      Each scale as a list, one row per scale_name. semitones_above_root[n]
+      is scale degree n's distance above the root, for n from 1 to
+      degree_count.
+    columns:
+      - name: scale_name
+        data_tests: [unique, not_null]
+      - name: semitones_above_root
+        data_tests: [not_null]
+      - name: degree_count
+        data_tests: [not_null]
+
+  - name: int_events__improvised
+    description: >
+      Each event a voice plays after improvisation, one row per piece_id,
+      section_name, voice_id and event_index. A voice without improv: plays
+      as written. A permutation plays the written pitches in an order set by
+      the seed; a markov walk starts on the first written pitch and steps to
+      a pitch that followed the current one in the written line, chosen by
+      the seed. Either way the voice keeps its written rhythm and velocities
+      event by event, repeating them if the walk is longer.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's improvised line, from 1.
+        data_tests: [not_null]
+      - name: pitch_spec
+        data_tests: [not_null]
+      - name: duration_spec
+        data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
+
+  - name: int_notes__pitched
+    description: >
+      Each tone a voice writes with its pitch resolved, one row per
+      piece_id, section_name, voice_id, event_index and chord_tone_index. A
+      note, scale degree or rest is one tone; a chord is one tone per chord
+      member. An inverted voice is mirrored around its first written pitch. Rests have no midi_note or
+      frequency_hz. Frequencies are equal-tempered with A4 (MIDI 69) at
+      440 Hz.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, event_index, chord_tone_index]
+      # a sounding tone without a midi_note had a pitch_spec that couldn't be read
+      - expression_is_true:
+          arguments:
+            expression: "is_rest or midi_note is not null"
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's pitch list as written, from 1.
+        data_tests: [not_null]
+      - name: chord_tone_index
+        description: The tone's position in its chord, root first; 1 for single notes.
+        data_tests: [not_null]
+      - name: is_rest
+        data_tests: [not_null]
+      - name: midi_note
+        description: MIDI note number; 60 is middle C (C4).
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
+              config:
+                where: "midi_note is not null"
+
+  - name: int_events__sequenced
+    description: >
+      Each event a voice plays within its section, after repeats,
+      retrograde and augmentation, one row per piece_id, section_name,
+      voice_id, repetition_index and event_index. start_beats counts from
+      the start of the section; a voice's events follow one another
+      without gaps.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, repetition_index, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: repetition_index
+        description: Which time through the voice's events this is, from 1.
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's pitch list as written, from 1.
+        data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
+      - name: start_beats
+        description: Beats from the start of the section.
+        data_tests: [not_null]
+      - name: duration_beats
+        description: >
+          The duration_spec as a number of beats, times the voice's
+          augmentation. Null means the spec was neither a number nor a
+          duration_aliases name, which fails the test.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+
+  - name: int_sections__timed
+    description: >
+      Each section as the form plays it, one row per piece_id and
+      form_index, with its start and length in beats and seconds. A section
+      lasts as long as its longest voice, and starts when the section
+      before it ends.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, form_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: form_index
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: start_beats
+        description: Beats from the start of the piece.
+        data_tests: [not_null]
+      - name: duration_beats
+        data_tests: [not_null]
+      - name: start_seconds
+        data_tests: [not_null]
+      - name: duration_seconds
+        data_tests: [not_null]
+      - name: tempo_bpm
+        description: The tempo the section plays at, in quarter-note beats per minute.
+        data_tests: [not_null]
+      - name: meter
+        description: The section's time signature, such as 3/4.
+        data_tests: [not_null]
+      - name: bar_beats
+        description: How many quarter-note beats a bar of the meter lasts; 3 in 6/8.
+        data_tests: [not_null]
+      - name: is_whole_bars
+        description: >
+          False when the section ends partway through a bar of the piece's
+          meter, which shifts every later section off the bar line. The
+          piece still plays, so the test warns rather than fails.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+              config:
+                severity: warn
+
+  - name: int_events__timed
+    description: >
+      Each note, chord or rest placed in the piece, one row per piece_id,
+      voice_id and event_index. Sections play in the order of the form, and
+      a voice's events in a section follow one another without gaps.
+      event_index numbers a voice's events through the whole piece; a voice
+      with the same name in several sections is one voice. Beats convert to
+      seconds at the piece's tempo.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in its voice across the whole piece, from 1.
+        data_tests: [not_null]
+      - name: form_index
+        description: The form entry the event plays in.
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: repetition_index
+        description: Which time through its voice's events in the section this is, from 1.
+        data_tests: [not_null]
+      - name: written_event_index
+        description: The event's position in the voice's pitch list as written, from 1.
+        data_tests: [not_null]
+      - name: velocity
+        data_tests: [not_null]
+      - name: start_beats
+        description: Beats from the start of the piece.
+        data_tests: [not_null]
+      - name: duration_beats
+        data_tests: [not_null]
+      - name: start_seconds
+        data_tests: [not_null]
+      - name: duration_seconds
+        data_tests: [not_null]
+
+  - name: int_instruments__ranged
+    description: >
+      Each piece's instruments with their envelope, pan and range in MIDI
+      notes, one row per piece_id and instrument_name. An instrument
+      without a range has null range columns and can play any note.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name]
+      # a range note name that isn't a real note name
+      - expression_is_true:
+          arguments:
+            expression: "(lowest_note_name is null or lowest_midi_note is not null) and (highest_note_name is null or highest_midi_note is not null)"
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: attack_seconds
+        data_tests: [not_null]
+      - name: decay_seconds
+        data_tests: [not_null]
+      - name: sustain_level
+        data_tests: [not_null]
+      - name: release_seconds
+        data_tests: [not_null]
+      - name: pan
+        data_tests: [not_null]
+
+  - name: int_instruments__partials
+    description: >
+      The harmonics of each piece's instruments, one row per piece_id,
+      instrument_name and partial_index, with amplitudes scaled so each
+      instrument's partials sum to 1.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, partial_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: partial_index
+        data_tests: [not_null]
+      - name: frequency_ratio
+        data_tests: [not_null]
+      - name: partial_amplitude
+        description: Share of the instrument's level, from 0 to 1.
+        data_tests: [not_null]
+
+  - name: int_instruments__effect_taps
+    description: >
+      Each copy of an instrument's sound that reaches the mix, one row per
+      piece_id, instrument_name, effect_name and tap_index: the dry sound,
+      each echo of its delay and each reflection of its reverb, with how
+      late it arrives and its gain in each channel. Every instrument has
+      its dry tap.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, effect_name, tap_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: effect_name
+        description: dry, delay or reverb.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [delay, dry, reverb]
+      - name: tap_index
+        description: The tap's position within its effect, from 1; 0 for the dry sound.
+        data_tests: [not_null]
+      - name: delay_seconds
+        description: How long after the dry sound the tap arrives.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: left_gain
+        data_tests: [not_null]
+      - name: right_gain
+        data_tests: [not_null]
+
+  - name: int_score__note_events
+    description: >
+      The score. One row per sounding tone, keyed by piece_id, voice_id,
+      event_index and chord_tone_index, with the section it plays in, its
+      instrument, pitch, velocity, and start and length in beats and
+      seconds. Rests are left out.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, voice_id, event_index, chord_tone_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        data_tests: [not_null]
+      - name: chord_tone_index
+        data_tests: [not_null]
+      - name: form_index
+        description: The form entry the note plays in.
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: midi_note
+        description: MIDI note number; 60 is middle C.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
+      - name: frequency_hz
+        description: Equal-tempered frequency, with A4 (MIDI 69) at 440 Hz.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: velocity
+        description: How hard the note is played, from 0 to 127.
+        data_tests: [not_null]
+      - name: start_beats
+        data_tests: [not_null]
+      - name: duration_beats
+        data_tests: [not_null]
+      - name: start_seconds
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: duration_seconds
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: is_in_instrument_range
+        description: >
+          False when the note is outside its instrument's range. The note
+          still plays, so the test warns rather than fails.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+              config:
+                severity: warn
+
+unit_tests:
+  - name: markov_walks_restart_from_the_first_pitch_at_a_dead_end
+    model: int_events__improvised
+    description: Each written pitch here has one successor, so the walk doesn't depend on the seed.
+    given:
+      - input: ref('piece_voice_events')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 100}
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 80}
+          - {piece_id: p, section_name: a, voice_id: walker, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 60}
+          - {piece_id: p, section_name: a, voice_id: as_written, event_index: 1, pitch_spec: G4, duration_spec: w, velocity: 90}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: walker, improv_method: markov, improv_length: 5, improv_seed: 0}
+          - {piece_id: p, section_name: a, voice_id: as_written, improv_method: null, improv_length: null, improv_seed: 0}
+    expect:
+      rows:
+        # E4 has nothing after it, so the walk goes back to C4; the rhythm repeats every three events
+        - {voice_id: walker, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 100}
+        - {voice_id: walker, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 80}
+        - {voice_id: walker, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 60}
+        - {voice_id: walker, event_index: 4, pitch_spec: C4, duration_spec: q, velocity: 100}
+        - {voice_id: walker, event_index: 5, pitch_spec: D4, duration_spec: h, velocity: 80}
+        - {voice_id: as_written, event_index: 1, pitch_spec: G4, duration_spec: w, velocity: 90}
+
+  - name: the_same_seed_improvises_the_same_line
+    model: int_events__improvised
+    description: >
+      Pins the lines seed 42 gives. If this fails after upgrading DuckDB,
+      hash() has changed, and every improvised piece will sound different.
+    given:
+      - input: ref('piece_voice_events')
+        format: sql
+        rows: |
+          select
+              'zz_improv' as piece_id,
+              'main' as section_name,
+              'shuffled' as voice_id,
+              event_index,
+              ['C4', 'D4', 'E4', 'F4', 'G4', 'r'][event_index] as pitch_spec,
+              'q' as duration_spec,
+              100 as velocity
+          from range(1, 7) as events(event_index)
+          union all
+          select
+              'zz_improv' as piece_id,
+              'main' as section_name,
+              'walker' as voice_id,
+              event_index,
+              ['1', '2', '3', '1', '3', '5', '3', '2', '1'][event_index] as pitch_spec,
+              'q' as duration_spec,
+              100 as velocity
+          from range(1, 10) as events(event_index)
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: zz_improv, section_name: main, voice_id: shuffled, improv_method: permutation, improv_length: null, improv_seed: 42}
+          - {piece_id: zz_improv, section_name: main, voice_id: walker, improv_method: markov, improv_length: 12, improv_seed: 42}
+    expect:
+      rows:
+        - {voice_id: shuffled, event_index: 1, pitch_spec: G4}
+        - {voice_id: shuffled, event_index: 2, pitch_spec: D4}
+        - {voice_id: shuffled, event_index: 3, pitch_spec: r}
+        - {voice_id: shuffled, event_index: 4, pitch_spec: F4}
+        - {voice_id: shuffled, event_index: 5, pitch_spec: E4}
+        - {voice_id: shuffled, event_index: 6, pitch_spec: C4}
+        # every step follows a transition in the written line: 3 to 2, 5 to 3, 3 to 1 and so on
+        - {voice_id: walker, event_index: 1, pitch_spec: "1"}
+        - {voice_id: walker, event_index: 2, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 3, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 4, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 5, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 6, pitch_spec: "5"}
+        - {voice_id: walker, event_index: 7, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 8, pitch_spec: "5"}
+        - {voice_id: walker, event_index: 9, pitch_spec: "3"}
+        - {voice_id: walker, event_index: 10, pitch_spec: "1"}
+        - {voice_id: walker, event_index: 11, pitch_spec: "2"}
+        - {voice_id: walker, event_index: 12, pitch_spec: "1"}
+
+  - name: degrees_resolve_in_d_dorian
+    model: int_notes__pitched
+    given:
+      - input: ref('int_events__improvised')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: "1"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: "3"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 3, pitch_spec: "6"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 4, pitch_spec: "8"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 5, pitch_spec: "0"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 6, pitch_spec: "-1"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 7, pitch_spec: "#3"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 8, pitch_spec: "bb7"}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 9, pitch_spec: r}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: degrees, octave: 4, transpose_semitones: 0, is_inverted: false}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, key_root: D, scale_name: dorian}
+      - input: ref('int_theory__scales')
+        format: sql
+        rows: |
+          select 'dorian' as scale_name, [0, 2, 3, 5, 7, 9, 10] as semitones_above_root, 7 as degree_count
+      - input: ref('pitch_classes')
+      - input: ref('int_theory__note_names')
+        rows: []
+      - input: ref('roman_numerals')
+    expect:
+      rows:
+        # D4, F4, B4 (dorian's raised sixth), D5
+        - {event_index: 1, midi_note: 62}
+        - {event_index: 2, midi_note: 65}
+        - {event_index: 3, midi_note: 71}
+        - {event_index: 4, midi_note: 74}
+        # the steps below the tonic: C4, then B3
+        - {event_index: 5, midi_note: 60}
+        - {event_index: 6, midi_note: 59}
+        # F#4 and Bb4 (C4 lowered twice)
+        - {event_index: 7, midi_note: 66}
+        - {event_index: 8, midi_note: 70}
+        - {event_index: 9, midi_note: null}
+
+  - name: chords_stack_thirds_in_the_key
+    model: int_notes__pitched
+    given:
+      - input: ref('int_events__improvised')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: i}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: IV7}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: chords, octave: 3, transpose_semitones: 0, is_inverted: false}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, key_root: D, scale_name: dorian}
+      - input: ref('int_theory__scales')
+        format: sql
+        rows: |
+          select 'dorian' as scale_name, [0, 2, 3, 5, 7, 9, 10] as semitones_above_root, 7 as degree_count
+      - input: ref('pitch_classes')
+      - input: ref('int_theory__note_names')
+        rows: []
+      - input: ref('roman_numerals')
+    expect:
+      rows:
+        # i: D3 F3 A3
+        - {event_index: 1, chord_tone_index: 1, midi_note: 50}
+        - {event_index: 1, chord_tone_index: 2, midi_note: 53}
+        - {event_index: 1, chord_tone_index: 3, midi_note: 57}
+        # IV7: G3 B3 D4 F4, a dominant seventh in dorian
+        - {event_index: 2, chord_tone_index: 1, midi_note: 55}
+        - {event_index: 2, chord_tone_index: 2, midi_note: 59}
+        - {event_index: 2, chord_tone_index: 3, midi_note: 62}
+        - {event_index: 2, chord_tone_index: 4, midi_note: 65}
+
+  - name: note_names_resolve_and_transpose
+    model: int_notes__pitched
+    given:
+      - input: ref('int_events__improvised')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 1, pitch_spec: Bb4}
+          - {piece_id: p, section_name: a, voice_id: v, event_index: 2, pitch_spec: Cb4}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: v, pitch_kind: notes, octave: 4, transpose_semitones: 2, is_inverted: false}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, key_root: C, scale_name: major}
+      - input: ref('int_theory__scales')
+        rows: []
+      - input: ref('pitch_classes')
+        rows: []
+      - input: ref('int_theory__note_names')
+        rows:
+          - {note_name: Bb4, midi_note: 70}
+          - {note_name: Cb4, midi_note: 59}
+      - input: ref('roman_numerals')
+        rows: []
+    expect:
+      rows:
+        - {event_index: 1, midi_note: 72}
+        - {event_index: 2, midi_note: 61}
+
+  - name: inverted_voices_mirror_around_their_first_pitch
+    model: int_notes__pitched
+    given:
+      - input: ref('int_events__improvised')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 1, pitch_spec: r}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 2, pitch_spec: "3"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 3, pitch_spec: "5"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 4, pitch_spec: "#4"}
+          - {piece_id: p, section_name: a, voice_id: degrees, event_index: 5, pitch_spec: "1"}
+          - {piece_id: p, section_name: a, voice_id: notes, event_index: 1, pitch_spec: E4}
+          - {piece_id: p, section_name: a, voice_id: notes, event_index: 2, pitch_spec: G4}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: degrees, pitch_kind: degrees, octave: 4, transpose_semitones: 0, is_inverted: true}
+          - {piece_id: p, section_name: a, voice_id: notes, pitch_kind: notes, octave: 4, transpose_semitones: 12, is_inverted: true}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, key_root: C, scale_name: major}
+      - input: ref('int_theory__scales')
+        format: sql
+        rows: |
+          select 'major' as scale_name, [0, 2, 4, 5, 7, 9, 11] as semitones_above_root, 7 as degree_count
+      - input: ref('pitch_classes')
+      - input: ref('int_theory__note_names')
+        rows:
+          - {note_name: E4, midi_note: 64}
+          - {note_name: G4, midi_note: 67}
+      - input: ref('roman_numerals')
+    expect:
+      rows:
+        - {voice_id: degrees, event_index: 1, midi_note: null}
+        # around degree 3 (E4): 5 becomes 1 (C4), #4 becomes b2 (Db4), 1 becomes 5 (G4)
+        - {voice_id: degrees, event_index: 2, midi_note: 64}
+        - {voice_id: degrees, event_index: 3, midi_note: 60}
+        - {voice_id: degrees, event_index: 4, midi_note: 61}
+        - {voice_id: degrees, event_index: 5, midi_note: 67}
+        # by semitones around E4, then up an octave: G4 becomes C#4, then C#5
+        - {voice_id: notes, event_index: 1, midi_note: 76}
+        - {voice_id: notes, event_index: 2, midi_note: 73}
+
+  - name: voices_repeat_retrograde_and_augment
+    model: int_events__sequenced
+    given:
+      - input: ref('int_events__improvised')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: plain, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: plain, event_index: 2, velocity: 100, duration_spec: h}
+          - {piece_id: p, section_name: a, voice_id: backwards, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: backwards, event_index: 2, velocity: 100, duration_spec: h}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, event_index: 1, velocity: 100, duration_spec: q}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, event_index: 2, velocity: 100, duration_spec: "0.5"}
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: plain, repeat_count: 2, is_retrograde: false, augmentation: 1}
+          - {piece_id: p, section_name: a, voice_id: backwards, repeat_count: 1, is_retrograde: true, augmentation: 1}
+          - {piece_id: p, section_name: a, voice_id: twice_as_slow, repeat_count: 1, is_retrograde: false, augmentation: 2}
+      - input: ref('duration_aliases')
+        rows:
+          - {duration_name: q, duration_beats: 1}
+          - {duration_name: h, duration_beats: 2}
+    expect:
+      rows:
+        - {voice_id: plain, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 1}
+        - {voice_id: plain, repetition_index: 1, event_index: 2, start_beats: 1, duration_beats: 2}
+        - {voice_id: plain, repetition_index: 2, event_index: 1, start_beats: 3, duration_beats: 1}
+        - {voice_id: plain, repetition_index: 2, event_index: 2, start_beats: 4, duration_beats: 2}
+        # the half note now comes first
+        - {voice_id: backwards, repetition_index: 1, event_index: 2, start_beats: 0, duration_beats: 2}
+        - {voice_id: backwards, repetition_index: 1, event_index: 1, start_beats: 2, duration_beats: 1}
+        - {voice_id: twice_as_slow, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 2}
+        - {voice_id: twice_as_slow, repetition_index: 1, event_index: 2, start_beats: 2, duration_beats: 1}
+
+  - name: sections_follow_the_form
+    model: int_sections__timed
+    given:
+      - input: ref('int_events__sequenced')
+        rows:
+          # section a's longest voice lasts 4 beats, b's 2
+          - {piece_id: p, section_name: a, start_beats: 0, duration_beats: 3}
+          - {piece_id: p, section_name: a, start_beats: 3, duration_beats: 1}
+          - {piece_id: p, section_name: a, start_beats: 0, duration_beats: 2}
+          - {piece_id: p, section_name: b, start_beats: 0, duration_beats: 2}
+      - input: ref('piece_form')
+        rows:
+          - {piece_id: p, form_index: 1, section_name: a}
+          - {piece_id: p, form_index: 2, section_name: b}
+          - {piece_id: p, form_index: 3, section_name: a}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, tempo_bpm: 120, meter: 2/4, beats_per_bar: 2}
+    expect:
+      rows:
+        - {form_index: 1, section_name: a, start_beats: 0, duration_beats: 4, start_seconds: 0, duration_seconds: 2}
+        - {form_index: 2, section_name: b, start_beats: 4, duration_beats: 2, start_seconds: 2, duration_seconds: 1}
+        - {form_index: 3, section_name: a, start_beats: 6, duration_beats: 4, start_seconds: 3, duration_seconds: 2}
+
+  - name: events_are_placed_in_their_sections_at_the_piece_tempo
+    model: int_events__timed
+    given:
+      - input: ref('int_events__sequenced')
+        rows:
+          - {piece_id: p, section_name: a, voice_id: lead, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 1}
+          - {piece_id: p, section_name: a, voice_id: lead, repetition_index: 1, event_index: 2, start_beats: 1, duration_beats: 3}
+          - {piece_id: p, section_name: b, voice_id: lead, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 2}
+      - input: ref('int_sections__timed')
+        rows:
+          - {piece_id: p, form_index: 1, section_name: a, start_beats: 0}
+          - {piece_id: p, form_index: 2, section_name: b, start_beats: 4}
+          - {piece_id: p, form_index: 3, section_name: a, start_beats: 6}
+      - input: ref('pieces')
+        rows:
+          - {piece_id: p, tempo_bpm: 120}
+    expect:
+      rows:
+        - {event_index: 1, form_index: 1, written_event_index: 1, start_beats: 0, duration_beats: 1, start_seconds: 0, duration_seconds: 0.5}
+        - {event_index: 2, form_index: 1, written_event_index: 2, start_beats: 1, duration_beats: 3, start_seconds: 0.5, duration_seconds: 1.5}
+        - {event_index: 3, form_index: 2, written_event_index: 1, start_beats: 4, duration_beats: 2, start_seconds: 2, duration_seconds: 1}
+        - {event_index: 4, form_index: 3, written_event_index: 1, start_beats: 6, duration_beats: 1, start_seconds: 3, duration_seconds: 0.5}
+        - {event_index: 5, form_index: 3, written_event_index: 2, start_beats: 7, duration_beats: 3, start_seconds: 3.5, duration_seconds: 1.5}
+
+  - name: delays_echo_at_falling_levels
+    model: int_instruments__effect_taps
+    given:
+      - input: ref('piece_instruments')
+        rows:
+          - {piece_id: p, instrument_name: echoing, delay_seconds: 0.5, delay_feedback: 0.5, delay_repeats: 2, reverb_seconds: null, reverb_mix: 0.25}
+          - {piece_id: p, instrument_name: plain, delay_seconds: null, delay_feedback: 0.4, delay_repeats: 3, reverb_seconds: null, reverb_mix: 0.25}
+    expect:
+      rows:
+        - {instrument_name: echoing, effect_name: dry, tap_index: 0, delay_seconds: 0, left_gain: 1, right_gain: 1}
+        - {instrument_name: echoing, effect_name: delay, tap_index: 1, delay_seconds: 0.5, left_gain: 0.5, right_gain: 0.5}
+        - {instrument_name: echoing, effect_name: delay, tap_index: 2, delay_seconds: 1, left_gain: 0.25, right_gain: 0.25}
+        - {instrument_name: plain, effect_name: dry, tap_index: 0, delay_seconds: 0, left_gain: 1, right_gain: 1}

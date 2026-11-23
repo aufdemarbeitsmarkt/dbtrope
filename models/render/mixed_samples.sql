@@ -2,79 +2,78 @@
 {#- Normalise each piece to just under full scale (about -1 dBFS). #}
 {%- set peak_amplitude = 0.89 %}
 
-with note_samples as (
+with instrument_samples as (
     select
         piece_id,
-        frequency_hz,
-        amplitude,
-        start_seconds,
-        duration_seconds,
-        attack_seconds,
-        decay_seconds,
-        sustain_level,
-        release_seconds,
-        release_start_level,
-        left_gain,
-        right_gain,
-        unnest(range(first_sample_index, end_sample_index)) as sample_index
-    from {{ ref('note_partials') }}
-),
-
-note_samples_with_offsets as (
-    select
-        *,
-        ((sample_index / {{ sample_rate }}) - start_seconds) as _seconds_into_note
-    from note_samples
-),
-
-/*
-    ADSR envelope: rise to 1 over the attack, fall to the sustain level over
-    the decay, hold until the note's written length ends, then fade from
-    wherever it got to down to silence over the release.
-*/
-enveloped_samples as (
-    select
-        piece_id,
+        instrument_name,
         sample_index,
+        left_amplitude,
+        right_amplitude
+    from {{ ref('instrument_samples') }}
+),
+
+effect_taps as (
+    select
+        piece_id,
+        instrument_name,
+        round(delay_seconds * {{ sample_rate }})::bigint as delay_sample_count,
         left_gain,
-        right_gain,
-        (
-            sin(2 * pi() * frequency_hz * _seconds_into_note)
-            * amplitude
-            * case
-                when _seconds_into_note >= duration_seconds
-                    then (
-                        release_start_level
-                        * greatest(0, 1 - (_seconds_into_note - duration_seconds) / release_seconds)
-                    )
-                when _seconds_into_note < attack_seconds
-                    then (_seconds_into_note / attack_seconds)
-                when _seconds_into_note < (attack_seconds + decay_seconds)
-                    then (1 - (1 - sustain_level) * (_seconds_into_note - attack_seconds) / decay_seconds)
-                else sustain_level
-            end
-        ) as _signal
-    from note_samples_with_offsets
+        right_gain
+    from {{ ref('int_instruments__effect_taps') }}
+),
+
+-- the dry sound, every echo and every reverb reflection, each a shifted, scaled copy of its instrument's samples
+tapped_samples as (
+    select
+        instrument_samples.piece_id,
+        (instrument_samples.sample_index + effect_taps.delay_sample_count) as sample_index,
+        (instrument_samples.left_amplitude * effect_taps.left_gain) as _left_amplitude,
+        (instrument_samples.right_amplitude * effect_taps.right_gain) as _right_amplitude
+    from instrument_samples
+    join effect_taps
+        on effect_taps.piece_id = instrument_samples.piece_id
+        and effect_taps.instrument_name = instrument_samples.instrument_name
 ),
 
 summed_samples as (
     select
         piece_id,
         sample_index,
-        sum(_signal * left_gain) as _left_amplitude,
-        sum(_signal * right_gain) as _right_amplitude
-    from enveloped_samples
+        sum(_left_amplitude) as _left_amplitude,
+        sum(_right_amplitude) as _right_amplitude
+    from tapped_samples
     group by
         piece_id,
         sample_index
 ),
 
-piece_lengths as (
+written_lengths as (
+    select
+        piece_id,
+        ceil(max(start_seconds + duration_seconds) * {{ sample_rate }})::bigint as sample_count
+    from {{ ref('int_events__timed') }}
+    group by piece_id
+),
+
+sounding_lengths as (
     select
         piece_id,
         (max(sample_index) + 1) as sample_count
     from summed_samples
     group by piece_id
+),
+
+-- a piece lasts until its last event ends, rests included, or its last release or echo fades, whichever is later
+piece_lengths as (
+    select
+        written_lengths.piece_id,
+        greatest(
+            written_lengths.sample_count,
+            coalesce(sounding_lengths.sample_count, 0)
+        ) as sample_count
+    from written_lengths
+    left join sounding_lengths
+        on sounding_lengths.piece_id = written_lengths.piece_id
 ),
 
 -- rests and gaps between notes have no rows in summed_samples; all_samples fills them with silence

@@ -7,7 +7,7 @@ How SQL and dbt models are written in dbtrope. Follow this guide for every new m
 - Lowercase SQL keywords (`select`, `from`, `where`, `case`, …).
 - *Almost-river* style: 4-space indents, line breaks and parentheses for legibility. Aim for alignment without being a stickler about it. ([background](https://gist.github.com/mattmc3/38a85e6a4ca1093816c08d4815fbebfb#river-formatting))
 - A model has one clear style. Don't restyle part of an existing file; restyle the whole file or leave it alone.
-- Comment only what someone editing the file couldn't work out from the SQL: a non-obvious musical or DSP rule, a DuckDB quirk, a surprising edge case. No file header comments. A model's grain and purpose go in its YAML `description:`.
+- Comment only what someone editing the file couldn't work out from the SQL: a non-obvious musical or DSP rule, a DuckDB quirk, a surprising edge case. No file header comments. A model's grain and purpose, or any resource's purpose, go in its YAML `description:`.
 - Prefer descriptive names to terse ones.
 - Commas go at the end of each line.
 - Filter early, unless filtering later makes complex logic easier to read.
@@ -274,15 +274,32 @@ qualify row_number() over (
 
 ## Layers
 
-A model's layer is the first directory under `models/`. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
+A model's layer is the first directory under `models/`. Pieces and stored instruments aren't models: they are YAML files in `pieces/` and `instruments/` at the project root, which `base/piece_files` and `base/instruments` read. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
 
 | Layer | Holds | May read |
 |---|---|---|
-| `pieces/` | One YAML-defined model per composition (`{{ compose() }}`) | instruments, seeds |
-| `instruments/` | One YAML-defined model per stored instrument (`{{ instrument() }}`) | seeds |
-| `base/` | Piece and instrument YAML flattened into rows | pieces, instruments, base, seeds |
+| `base/` | Piece and instrument files read and flattened into rows | base, seeds |
 | `intermediate/` | Theory, form, transforms, timing, the score | base, intermediate, seeds |
 | `render/` | Partials, samples, effects, WAV output | intermediate, render |
+
+## Documenting models and other resources
+
+Every directory of dbt resources is documented in one YAML file, named for the directory with a leading underscore. The underscore sorts the file above what it describes.
+
+| File | Documents |
+|---|---|
+| `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/render/_render.yml` | that layer's models, unit tests and exposures |
+| `seeds/_seeds.yml` | seeds |
+| `macros/_macros.yml` | macros |
+| `analyses/_analyses.yml` | analyses |
+| `tests/_tests.yml` | singular data tests, under `data_tests:` |
+| `tests/generic/_generic.yml` | generic tests, as `macros:` named `test_<name>`, with their arguments |
+
+- List models in lineage order, so the file reads from the directory's inputs to its outputs.
+- Put a directory's unit tests in a `unit_tests:` block after its models, in the same order. Exposures go in the file of the directory whose models they depend on.
+- Every model has a `description:` stating its grain: what one row is and which columns key it. Seeds, macros, analyses and singular tests have a `description:` saying what they hold or do; a test's says what makes it fail.
+- What a resource is for goes in its description, not a header comment in its `.sql` file.
+- Don't add a per-resource `.yml`. A new directory gets its own `_<directory>.yml`. `make check` fails on a resource documented anywhere but its directory's file, or without a description.
 
 ## Naming models
 

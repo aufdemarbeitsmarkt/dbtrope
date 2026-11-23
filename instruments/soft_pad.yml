@@ -1,0 +1,5 @@
+description: A warm pad with a slow attack and a long release, for chords.
+partials: [[1, 0.5], [2, 0.25], [3, 0.12]]
+adsr: {a: 0.2, d: 0.1, s: 0.7, r: 0.4}
+range: [C2, C6]
+pan: 0

@@ -1,0 +1,10 @@
+data_tests:
+  - name: rendered_pieces_last_their_written_length
+    description: >
+      Fails for each piece whose WAV file is missing or ends before its last
+      event, rests included.
+
+  - name: midi_files_hold_every_note
+    description: >
+      Fails for each piece whose MIDI file is missing or holds a different
+      number of notes from its score.

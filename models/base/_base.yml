@@ -1,0 +1,520 @@
+# Every model in base/: piece and instrument YAML flattened into rows.
+# Models are in lineage order.
+
+models:
+  - name: piece_files
+    description: >
+      The piece files the build reads, one row per piece_id, with each
+      file's YAML as JSON. The piece var chooses them: a piece name
+      (nocturne), a path to a .yml file anywhere, or all for every .yml in
+      the pieces_dir var (pieces/). dbt build stops if it isn't given. A piece's id is its
+      file name.
+    config:
+      pieces_dir: "{{ var('pieces_dir') }}"
+      piece: "{{ var('piece') or '' }}"
+    columns:
+      - name: piece_id
+        description: The file's name without .yml.
+        data_tests: [unique, not_null]
+      - name: file_path
+        description: Where the file was read from, relative to the directory dbt runs in.
+        data_tests: [not_null]
+      - name: score
+        description: The file's YAML as JSON.
+        data_tests: [not_null]
+
+  - name: pieces
+    description: >
+      Every piece in the build, one row per piece_id, with its piece-wide
+      settings and the full score as JSON.
+    data_tests:
+      # a piece is written either as voices or as sections of voices
+      - expression_is_true:
+          arguments:
+            expression: "(score -> 'voices') is null or (score -> 'sections') is null"
+    columns:
+      - name: piece_id
+        description: The piece file's name.
+        data_tests: [unique, not_null]
+      - name: file_path
+        description: The piece file it was read from.
+      - name: description
+        description: The piece's description, as written at the top of its file.
+      - name: tempo_bpm
+        description: Quarter-note beats per minute. Defaults to 120.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: meter
+        description: Time signature as written, such as 3/4. Defaults to 4/4.
+      - name: beats_per_bar
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: key_root
+        description: The key's root as a pitch name, such as D or Bb. Defaults to C.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('pitch_classes')
+                field: pitch_name
+      - name: scale_name
+        description: The key's scale or mode, from the scales seed. Defaults to major.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('scales')
+                field: scale_name
+      - name: seed
+        description: >
+          Seeds the piece's improvised voices, so the same seed always
+          gives the same piece. Defaults to 0.
+        data_tests: [not_null]
+      - name: score
+        description: The piece's YAML as JSON.
+
+  - name: piece_sections
+    description: >
+      Each section of each piece, one row per piece_id and section_name,
+      with its YAML as JSON. A piece written with voices: and no sections:
+      has one section, main, holding those voices.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: section_index
+        description: The section's position under sections:, from 1. A piece without a form plays its sections in this order.
+        data_tests: [not_null]
+      - name: section
+        description: The section's YAML as JSON.
+        data_tests: [not_null]
+
+  - name: piece_form
+    description: >
+      The order a piece plays its sections in, one row per piece_id and
+      form_index. A section can appear any number of times. Without a form:
+      list, each section plays once in the order written.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, form_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: form_index
+        description: The entry's position in the form, from 1.
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: is_section_defined
+        description: False when the form names a section the piece doesn't have, which fails the test.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+
+  - name: piece_motifs
+    description: >
+      Each motif a piece names under motifs:, one row per piece_id and
+      motif_name, with its YAML as JSON. A motif holds any keys a voice can
+      have, usually a pitch list with its beats; a voice plays it with
+      motif: <name>.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, motif_name]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: motif_name
+        data_tests: [not_null]
+      - name: motif
+        description: The motif's YAML as JSON.
+        data_tests: [not_null]
+
+  - name: piece_voices
+    description: >
+      Each voice of each section of each piece, one row per piece_id,
+      section_name and voice_id, with its settings and its YAML as JSON. A
+      voice without a name is called voice_<n>. A voice that plays a motif
+      has the motif's keys merged under its own.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id]
+    columns:
+      - name: piece_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('pieces')
+                field: piece_id
+      - name: section_name
+        description: The section the voice plays in; main for a piece written without sections.
+        data_tests: [not_null]
+      - name: voice_id
+        description: >
+          The voice's name. Voices with the same name in different sections
+          are one voice in the score, like a track.
+        data_tests: [not_null]
+      - name: voice_index
+        description: The voice's position in its section's voices list, from 1.
+        data_tests: [not_null]
+      - name: motif_name
+        description: The motif the voice plays, if any.
+      - name: is_motif_defined
+        description: False when the voice names a motif the piece doesn't have, which fails the test.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+      - name: pitch_kind
+        description: Which list the voice is written in, notes, degrees or chords.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [chords, degrees, notes]
+      - name: pitch_list_count
+        description: How many of notes, degrees and chords the voice has; it must have exactly one.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= 1"
+      - name: octave
+        description: >
+          The octave that scale degree 1 and chord roots sit in. Defaults to
+          4, so degree 1 in C major is middle C. Ignored for note names.
+        data_tests: [not_null]
+      - name: transpose_semitones
+        description: Semitones added to every pitch in the voice. Defaults to 0.
+        data_tests: [not_null]
+      - name: instrument_name
+        description: >
+          The instrument the voice plays: one declared under the piece's
+          instruments, or a stored instrument. Defaults to sine.
+        data_tests: [not_null]
+      - name: velocity
+        description: >
+          How hard the voice plays, from 0 to 127, like MIDI velocity.
+          Defaults to 100. A velocities list overrides it note by note.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
+      - name: repeat_count
+        description: How many times the voice plays its events in a row. Defaults to 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+      - name: is_retrograde
+        description: True when the voice plays its events backwards, rhythm included.
+        data_tests: [not_null]
+      - name: is_inverted
+        description: >
+          True when the voice mirrors its pitches around its first written
+          pitch: within the scale for degrees and chords, by semitones for
+          note names.
+        data_tests: [not_null]
+      - name: augmentation
+        description: >
+          What every length is multiplied by: 2 doubles them (augmentation),
+          0.5 halves them (diminution). Defaults to 1.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: improv_method
+        description: >
+          How the voice improvises on its written pitches: permutation
+          shuffles them, markov walks from one pitch to a pitch that
+          followed it in the written line. Null for a voice that plays as
+          written.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [markov, permutation]
+      - name: improv_length
+        description: How many events a markov walk plays. Defaults to the number written.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+              config:
+                where: "improv_length is not null"
+      - name: improv_seed
+        description: The voice's improv seed, or else the piece's seed.
+        data_tests: [not_null]
+      - name: voice
+        description: The voice's YAML as JSON, with its motif's keys merged in.
+
+  - name: piece_voice_events
+    description: >
+      Each note, scale degree, chord or rest a voice plays, as written, one
+      row per piece_id, section_name, voice_id and event_index. Beats and velocities lists shorter than the
+      pitch list repeat from their start; an empty list counts as leaving it
+      out.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, section_name, voice_id, event_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: section_name
+        data_tests: [not_null]
+      - name: voice_id
+        data_tests: [not_null]
+      - name: event_index
+        description: The event's position in the voice's pitch list, from 1.
+        data_tests: [not_null]
+      - name: pitch_spec
+        description: >
+          The pitch as written: a note name (C4, Bb3), a scale degree (3,
+          b7, 8) or a chord (i, IV, v7), depending on the voice's
+          pitch_kind; r is a rest.
+        data_tests: [not_null]
+      - name: duration_spec
+        description: The length as written, either a number of beats or a duration_aliases name.
+        data_tests: [not_null]
+      - name: velocity
+        description: The note's velocity, from the voice's velocities list or else its velocity.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 127"
+
+  - name: instruments
+    description: >
+      The stored instrument library, one row per instrument_name: every
+      .yml in the instruments_dir var (instruments/), with its YAML as
+      JSON. An instrument's name is its file name. Every build reads the
+      whole library, whichever pieces it renders.
+    config:
+      instruments_dir: "{{ var('instruments_dir') }}"
+    columns:
+      - name: instrument_name
+        description: "The file's name without .yml, which pieces use in instrument: and use:."
+        data_tests: [unique, not_null]
+      - name: file_path
+        description: Where the file was read from, relative to the directory dbt runs in.
+        data_tests: [not_null]
+      - name: definition
+        description: The instrument's YAML as JSON.
+
+  - name: piece_instruments
+    description: >
+      Every instrument each piece uses, resolved, one row per piece_id and
+      instrument_name. An instrument the piece declares under instruments:
+      is inline, or an override when it has use: (starting from that stored
+      instrument and replacing only the keys it lists, down to single adsr
+      values). Any other name a voice uses is a stored instrument, used
+      as-is.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        description: The name voices use for the instrument in this piece.
+        data_tests: [not_null]
+      - name: instrument_source
+        description: inline, override or library.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [inline, library, override]
+      - name: library_instrument_name
+        description: The stored instrument it starts from, for override and library instruments.
+      - name: is_resolved
+        description: >
+          False when the stored instrument it names doesn't exist. The
+          failing rows name the piece and the instrument.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
+      - name: partials
+        description: >
+          The instrument's harmonics as a JSON list of [frequency ratio,
+          amplitude] pairs. [1, 1] is the fundamental at full level.
+      - name: attack_seconds
+        description: Time to rise from silence to full level.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: decay_seconds
+        description: Time to fall from full level to the sustain level.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: sustain_level
+        description: Level held until the note ends, from 0 to 1.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "between 0 and 1"
+      - name: release_seconds
+        description: Time to fade to silence after the note ends. The note sounds this long past its written length.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: pan
+        description: Stereo position from -1 (left) to 1 (right).
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "between -1 and 1"
+      - name: lowest_note_name
+        description: The lowest note the instrument should play, if it has a range.
+      - name: highest_note_name
+        description: The highest note the instrument should play, if it has a range.
+      - name: delay_seconds
+        description: Time between echoes, for an instrument with a delay; null otherwise. Defaults to 0.25.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+              config:
+                where: "delay_seconds is not null"
+      - name: delay_feedback
+        description: Each echo's level relative to the one before, from 0 to just under 1. Defaults to 0.4.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0 and delay_feedback < 1"
+      - name: delay_repeats
+        description: How many echoes the delay plays. Defaults to 3.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 1"
+      - name: reverb_seconds
+        description: >
+          How long the reverb takes to fade by 60 dB, for an instrument with
+          a reverb; null otherwise. Defaults to 1.5.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+              config:
+                where: "reverb_seconds is not null"
+      - name: reverb_mix
+        description: The reverb's level relative to the dry sound. Defaults to 0.25.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+  - name: piece_instrument_partials
+    description: >
+      The harmonics of each piece's instruments, one row per piece_id,
+      instrument_name and partial_index.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, partial_index]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: partial_index
+        description: The partial's position in the instrument's partials list, from 1.
+        data_tests: [not_null]
+      - name: frequency_ratio
+        description: The partial's frequency as a multiple of the note's; 1 is the fundamental.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: partial_amplitude
+        description: The partial's level relative to the instrument's other partials.
+        data_tests:
+          - not_null
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+unit_tests:
+  - name: short_lists_repeat_and_empty_lists_are_unset
+    model: piece_voice_events
+    given:
+      - input: ref('piece_voices')
+        format: sql
+        rows: |
+          select
+              'p' as piece_id,
+              'main' as section_name,
+              'cycling' as voice_id,
+              'notes' as pitch_kind,
+              100 as velocity,
+              '{"notes": ["C4", "D4", "E4"], "beats": ["q", "h"], "velocities": [90, 60]}'::json as voice
+          union all
+          select
+              'p' as piece_id,
+              'main' as section_name,
+              'empty' as voice_id,
+              'notes' as pitch_kind,
+              70 as velocity,
+              '{"notes": ["C4", "D4"], "beats": [], "velocities": []}'::json as voice
+    expect:
+      rows:
+        - {voice_id: cycling, event_index: 1, pitch_spec: C4, duration_spec: q, velocity: 90}
+        - {voice_id: cycling, event_index: 2, pitch_spec: D4, duration_spec: h, velocity: 60}
+        - {voice_id: cycling, event_index: 3, pitch_spec: E4, duration_spec: q, velocity: 90}
+        # an empty list is the same as leaving it out: one beat, the voice's velocity
+        - {voice_id: empty, event_index: 1, pitch_spec: C4, duration_spec: "1", velocity: 70}
+        - {voice_id: empty, event_index: 2, pitch_spec: D4, duration_spec: "1", velocity: 70}
+
+  - name: declarations_override_stored_instruments_key_by_key
+    model: piece_instruments
+    given:
+      - input: ref('pieces')
+        format: sql
+        rows: |
+          select
+              'p' as piece_id,
+              '{"instruments": {"soft": {"use": "pad", "pan": -0.3, "adsr": {"r": 0.8}}, "bell": {"partials": [[1, 1], [2.76, 0.3]]}}}'::json as score
+      - input: ref('piece_voices')
+        rows:
+          - {piece_id: p, instrument_name: soft}
+          - {piece_id: p, instrument_name: bell}
+          - {piece_id: p, instrument_name: pad}
+          - {piece_id: p, instrument_name: missing}
+      - input: ref('instruments')
+        format: sql
+        rows: |
+          select
+              'pad' as instrument_name,
+              '{"partials": [[1, 0.5]], "adsr": {"a": 0.2, "d": 0.1, "s": 0.7, "r": 0.4}, "pan": 0, "range": ["C2", "C6"]}'::json as definition
+    expect:
+      rows:
+        # soft starts from pad and changes only pan and the release
+        - {instrument_name: soft, instrument_source: override, library_instrument_name: pad, is_resolved: true, attack_seconds: 0.2, sustain_level: 0.7, release_seconds: 0.8, pan: -0.3, lowest_note_name: C2}
+        # bell is defined in the piece; unset settings take the defaults
+        - {instrument_name: bell, instrument_source: inline, library_instrument_name: null, is_resolved: true, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}
+        - {instrument_name: pad, instrument_source: library, library_instrument_name: pad, is_resolved: true, attack_seconds: 0.2, sustain_level: 0.7, release_seconds: 0.4, pan: 0, lowest_note_name: C2}
+        - {instrument_name: missing, instrument_source: library, library_instrument_name: missing, is_resolved: false, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}

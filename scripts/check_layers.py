@@ -9,6 +9,8 @@ Rules:
   - each layer may only ref() the layers listed in ALLOWED_UPSTREAM
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
+  - every model, seed, analysis, singular data test and macro (generic tests
+    included) has a description, written in its directory's _<directory>.yml
 """
 
 import json
@@ -17,10 +19,7 @@ import sys
 from pathlib import Path
 
 ALLOWED_UPSTREAM = {
-    # a piece's depends_on lines point at the stored instruments it uses
-    "pieces": {"instruments", "seed"},
-    "instruments": {"seed"},
-    "base": {"pieces", "instruments", "base", "seed"},
+    "base": {"base", "seed"},
     "intermediate": {"base", "intermediate", "seed"},
     "render": {"intermediate", "render"},
 }
@@ -73,6 +72,34 @@ def check(manifest: dict) -> list[str]:
                     f"{layer} may only read: {', '.join(sorted(ALLOWED_UPSTREAM[layer]))}"
                 )
 
+    errors.extend(check_documentation(manifest))
+    return errors
+
+
+def is_documented_resource(resource: dict) -> bool:
+    if resource["resource_type"] in ("model", "seed", "analysis", "macro"):
+        return True
+    # singular data tests are .sql files; generic tests are generated from YAML
+    return resource["resource_type"] == "test" and not resource.get("test_metadata")
+
+
+def check_documentation(manifest: dict) -> list[str]:
+    project = manifest["metadata"].get("project_name", "dbtrope")
+    errors = []
+    resources = list(manifest["nodes"].values()) + list(manifest["macros"].values())
+    for resource in sorted(resources, key=lambda r: r["original_file_path"]):
+        if resource["package_name"] != project or not is_documented_resource(resource):
+            continue
+        name = resource["name"]
+        kind = resource["resource_type"]
+        if not (resource.get("description") or "").strip():
+            what = "stating its grain" if kind == "model" else "saying what it does"
+            errors.append(f"{name}: add a description: {what}")
+        directory = Path(resource["original_file_path"]).parent
+        expected = f"{directory.as_posix()}/_{directory.name}.yml"
+        documented_in = (resource.get("patch_path") or "").split("://", 1)[-1]
+        if documented_in != expected:
+            errors.append(f"{name}: document it in {expected}, not {documented_in or 'nowhere'}")
     return errors
 
 

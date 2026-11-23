@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install registry parse check build test clean new-piece new-instrument
+.PHONY: install parse check build test docs score clean new-piece new-instrument
 
 install: $(VENV)/.installed
 
@@ -14,29 +14,38 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-# Lists the pieces for base/pieces; see scripts/build_registry.py.
-registry: install
-	$(BIN)/python scripts/build_registry.py
+# make build PIECE=nocturne (or PIECE=path/to/piece.yml) renders one piece, PIECE=all every piece in pieces/.
+# dbt build stops without PIECE, so nothing renders every piece by accident (macros/require_piece.sql).
+PIECE_VARS := $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
-parse: registry
+parse: install
 	$(DBT) parse --target $(TARGET)
 
 check: parse
 	$(BIN)/python scripts/check_layers.py target/manifest.json
 
 build: check
-	$(DBT) build --target $(TARGET)
+	$(DBT) build --target $(TARGET) $(PIECE_VARS)
 
-test: registry
-	$(DBT) test --target $(TARGET)
+test: install
+	$(DBT) test --target $(TARGET) $(PIECE_VARS)
+
+# Browse every model and the piece and instrument tables, with lineage, at http://localhost:8080. Run make build first.
+docs: install
+	$(DBT) docs generate --target $(TARGET)
+	$(DBT) docs serve --target $(TARGET)
+
+# make score PIECE=nocturne lists a built piece's notes by bar and beat; PIECE=all or no PIECE for every built piece.
+score: install
+	$(DBT) show --select score_listing --target $(TARGET) --limit 1000 $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
 # make new-piece NAME=my_piece, make new-instrument NAME=my_instrument
 new-piece: install
-	$(BIN)/python scripts/new_model.py piece $(NAME)
+	$(BIN)/python scripts/new_from_template.py piece $(NAME)
 
 new-instrument: install
-	$(BIN)/python scripts/new_model.py instrument $(NAME)
+	$(BIN)/python scripts/new_from_template.py instrument $(NAME)
 
 clean:
 	$(DBT) clean
-	rm -f *.duckdb *.duckdb.wal output/*.wav
+	rm -f *.duckdb *.duckdb.wal output/*.wav output/*.mid

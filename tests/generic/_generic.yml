@@ -1,0 +1,21 @@
+macros:
+  - name: test_unique_combination_of_columns
+    description: >
+      Fails for each combination of the columns in combination_of_columns
+      that appears more than once.
+    arguments:
+      - name: combination_of_columns
+        type: list
+        description: the columns that together key the model
+
+  - name: test_expression_is_true
+    description: >
+      Fails for each row where `<column> <expression>` is not true. On a
+      model rather than a column, the expression is checked on its own.
+    arguments:
+      - name: expression
+        type: string
+        description: a SQL expression, prefixed with the column when the test is on a column
+      - name: column_name
+        type: string
+        description: the column the test is on, if any

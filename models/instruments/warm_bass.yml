@@ -1,9 +1,0 @@
-models:
-  - name: warm_bass
-    description: A round bass with a quick attack.
-    config:
-      meta:
-        partials: [[1, 0.8], [2, 0.3], [3, 0.1]]
-        adsr: {a: 0.01, d: 0.2, s: 0.6, r: 0.15}
-        range: [E1, G3]
-        pan: 0
