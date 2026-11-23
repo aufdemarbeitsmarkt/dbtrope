@@ -278,9 +278,16 @@ A model's layer is the first directory under `models/`. Pieces and stored instru
 
 | Layer | Holds | May read |
 |---|---|---|
-| `base/` | Piece and instrument files read and flattened into rows | base, seeds |
-| `intermediate/` | Theory, form, transforms, timing, the score | base, intermediate, seeds |
-| `render/` | Partials, samples, effects, WAV output | intermediate, render |
+| `base/` | Theory tables from seeds; piece and instrument files read and flattened into rows | base, seeds |
+| `intermediate/` | The steps that build the score: improvisation, pitch, sequencing | base, intermediate, seeds |
+| `core/` | The objects the rest of the project reads: sections, the ensemble, the score | base, intermediate, core, seeds |
+| `render/` | Partials, samples, effects, WAV and MIDI output | core, render |
+
+Analyses read only `core/` and `render/`.
+
+- A model belongs in `core/` when something outside the chain that builds it reads it: a render model, an analysis, or someone browsing the project. Name it for the thing itself (`sections`, `score_notes`), not for what was done to it.
+- A model belongs in `intermediate/` when it only exists to feed the next step. If a render model or analysis needs one, that is a sign it should move to `core/`, or that what it needs belongs on a `core/` model.
+- A table built from seeds alone, with nothing piece-specific, goes in `base/`.
 
 ## Documenting models and other resources
 
@@ -288,7 +295,7 @@ Every directory of dbt resources is documented in one YAML file, named for the d
 
 | File | Documents |
 |---|---|
-| `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/render/_render.yml` | that layer's models, unit tests and exposures |
+| `models/base/_base.yml`, `models/intermediate/_intermediate.yml`, `models/core/_core.yml`, `models/render/_render.yml` | that layer's models, unit tests and exposures |
 | `seeds/_seeds.yml` | seeds |
 | `macros/_macros.yml` | macros |
 | `analyses/_analyses.yml` | analyses |
@@ -303,8 +310,8 @@ Every directory of dbt resources is documented in one YAML file, named for the d
 
 ## Naming models
 
-- Models outside `intermediate/` have no layer prefix. Name them for what they hold: `pieces`, `piece_motifs`, `mixed_samples`. Never `stg_`.
-- Intermediate models are named `int_{topic}__{transformation}`. `transformation` is a verb for what happened (`__expanded`, `__pitched`, `__timed`) or a noun for what is created (`__note_events`). Use a verb when a topic has more than one step.
+- Models outside `intermediate/` have no layer prefix. Name them for what they hold: `pieces`, `piece_motifs`, `score_notes`, `mixed_samples`. Never `stg_`.
+- Intermediate models are named `int_{topic}__{transformation}`, where `transformation` is a verb for what happened: `int_events__improvised`, `int_notes__pitched`, `int_events__sequenced`.
 
 ## Influences
 

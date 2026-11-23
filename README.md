@@ -284,20 +284,20 @@ Pieces and instruments are plain YAML files, not dbt models: there's nothing to 
 ## How a note becomes sound
 
 1. `base/piece_files` and `base/instruments` read the piece and instrument files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
-2. `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section; `int_sections__timed` lays the sections out along the form; `int_events__timed` combines the two into start times in beats and seconds.
-3. `int_score__note_events` holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`.
+2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section.
+3. `core/` holds what the rest of the project reads. `sections` lays the sections out along the form. `score_notes` places each event in its section and holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`. `ensemble`, `instrument_partials` and `instrument_effect_taps` hold each piece's instruments with their ranges, harmonics and effects.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
 5. `instrument_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains and sums it by instrument and `sample_index`.
-6. `mixed_samples` adds each instrument's delayed copies from `int_instruments__effect_taps` (the dry sound, delay echoes and reverb reflections) by shifting `sample_index`, sums everything, fills gaps with silence and normalises each piece.
+6. `mixed_samples` adds each instrument's delayed copies from `instrument_effect_taps` (the dry sound, delay echoes and reverb reflections) by shifting `sample_index`, sums everything, fills gaps with silence and normalises each piece.
 7. `render_wav`, a dbt Python model, writes the samples as 16-bit stereo PCM with the standard library's `wave` module.
 
-`render_midi`, another Python model, writes `int_score__note_events` as a Standard MIDI File without third-party libraries: a tempo and time-signature track, then one named track and channel per voice (channel 10 is skipped, since General MIDI keeps it for drums). MIDI holds pitches, velocities and written lengths, so instruments, releases and effects are left to whatever plays it.
+`render_midi`, another Python model, writes `score_notes` as a Standard MIDI File without third-party libraries: a tempo and time-signature track, then one named track and channel per voice (channel 10 is skipped, since General MIDI keeps it for drums). MIDI holds pitches, velocities and written lengths, so instruments, releases and effects are left to whatever plays it.
 
 ## Browsing
 
 - `make docs` generates and serves dbt docs: every model with its description, columns, tests and lineage. The overview page explains where to look.
 - `make score PIECE=<piece>` prints a built piece's notes by section, bar and beat, with chords spelled out (`analyses/score_listing.sql`).
-- `int_score__note_events` is the score as a table, for any query you like.
+- `score_notes` is the score as a table, for any query you like.
 
 ## Layout
 
@@ -306,8 +306,9 @@ pieces/                one .yml per composition
 instruments/           one .yml per stored instrument
 seeds/                 music theory reference tables
 models/
-  base/                piece and instrument files read and flattened into rows
-  intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
+  base/                theory tables from seeds; piece and instrument files read and flattened into rows
+  intermediate/        int_{topic}__{transformation}: the steps that build the score
+  core/                what render/ and analyses read: sections, the ensemble, the score
   render/              partials, mixed samples, effects, WAV and MIDI output
   */_<directory>.yml   one file documenting and testing every model in the directory
 analyses/score_listing.sql  a piece's notes by bar and beat, for make score

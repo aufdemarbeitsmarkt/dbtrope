@@ -68,7 +68,7 @@ def model(dbt, session):
     output_dir = Path(dbt.config.get("output_dir"))
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    sections = dbt.ref("int_sections__timed").query(
+    sections = dbt.ref("sections").query(
         "sections",
         """
         select
@@ -84,7 +84,7 @@ def model(dbt, session):
     ).fetchall()
 
     # A note-on with velocity 0 means note-off in MIDI, so silent notes are left out.
-    voices = dbt.ref("int_score__note_events").query(
+    voices = dbt.ref("score_notes").query(
         "note_events",
         """
         select

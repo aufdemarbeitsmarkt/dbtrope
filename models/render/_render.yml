@@ -73,7 +73,7 @@ models:
       ends (a closing rest included) or its last note's release or echo
       fades, whichever is later. Each instrument's samples are summed with
       its delayed copies (delay echoes and reverb reflections, from
-      int_instruments__effect_taps), then each piece is normalised so its
+      instrument_effect_taps), then each piece is normalised so its
       loudest sample in either channel is 0.89. A piece of only rests is
       silent.
     data_tests:

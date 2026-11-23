@@ -14,7 +14,7 @@ with note_events as (
         velocity,
         start_beats,
         duration_beats
-    from {{ ref('int_score__note_events') }}
+    from {{ ref('score_notes') }}
     {%- if piece != 'all' %}
     where piece_id = '{{ piece }}'
     {%- endif %}
@@ -25,7 +25,7 @@ sections as (
         piece_id,
         form_index,
         bar_beats
-    from {{ ref('int_sections__timed') }}
+    from {{ ref('sections') }}
 ),
 
 named_notes as (
