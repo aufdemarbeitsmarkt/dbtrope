@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install registry parse check build test clean new-piece new-instrument
+.PHONY: install registry parse check build test docs score clean new-piece new-instrument
 
 install: $(VENV)/.installed
 
@@ -29,6 +29,15 @@ build: check
 
 test: registry
 	$(DBT) test --target $(TARGET)
+
+# Browse every piece, instrument and model, with lineage, at http://localhost:8080. Run make build first.
+docs: registry
+	$(DBT) docs generate --target $(TARGET)
+	$(DBT) docs serve --target $(TARGET)
+
+# make score PIECE=nocturne lists a built piece's notes by bar and beat; leave PIECE out for every piece.
+score: registry
+	$(DBT) show --select score_listing --target $(TARGET) --limit 1000 $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
 # make new-piece NAME=my_piece, make new-instrument NAME=my_instrument
 new-piece: install

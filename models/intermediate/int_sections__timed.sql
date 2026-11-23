@@ -81,6 +81,7 @@ select
     (timed_sections.duration_beats * 60 / piece_tempos.tempo_bpm) as duration_seconds,
     piece_tempos.tempo_bpm,
     piece_tempos.meter,
+    piece_tempos.bar_beats,
     ((timed_sections.duration_beats % piece_tempos.bar_beats) = 0) as is_whole_bars
 from timed_sections
 join piece_tempos

@@ -31,6 +31,9 @@ models:
       - name: meter
         description: The section's time signature, such as 3/4.
         data_tests: [not_null]
+      - name: bar_beats
+        description: How many quarter-note beats a bar of the meter lasts; 3 in 6/8.
+        data_tests: [not_null]
       - name: is_whole_bars
         description: >
           False when the section ends partway through a bar of the piece's

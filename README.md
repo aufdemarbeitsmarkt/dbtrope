@@ -2,7 +2,7 @@
 
 Compose music with a dbt project. A piece is written in YAML, transformed into a score with SQL, synthesized sample by sample in DuckDB, and written to a WAV file, all by `dbt build`.
 
-> Status: milestone 8, effects. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity, stereo pan, delay and reverb.
+> Status: all nine milestones of the build plan are done. Pieces are written in note names, scale degrees or chords, arranged in sections and a form, with motifs that can be repeated, reversed, inverted and stretched, voices that improvise from a seed, and played on stored or inline instruments with harmonics, ADSR envelopes, velocity, stereo pan, delay and reverb.
 
 ## Quick start
 
@@ -14,6 +14,93 @@ make build     # check layer rules, then dbt build
 ```
 
 Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
+
+## Tutorial: your first piece
+
+This walks from an empty piece to one that uses most of dbtrope, building after each step. Every key it uses is described under [Writing a piece](#writing-a-piece).
+
+**1. A melody.** A piece is two files in `models/pieces/`. Create `models/pieces/first_tune.sql` containing only:
+
+```sql
+{{ compose() }}
+```
+
+and `models/pieces/first_tune.yml`:
+
+```yaml
+models:
+  - name: first_tune
+    description: My first piece.
+    config:
+      meta:
+        tempo: 100
+        voices:
+          - name: melody
+            notes: [E4, D4, C4, D4, E4, E4, E4, r]
+            beats: [q, q, q, q, q, q, h, w]
+```
+
+Run `make build`, then play `output/first_tune.wav`. `make score PIECE=first_tune` lists what you wrote by bar and beat.
+
+**2. A key and a bass line.** Write in scale degrees and chords so the key does the work. Add a `key` and two voices under `voices`:
+
+```yaml
+        key: {root: G, scale: major}
+        voices:
+          - name: melody
+            degrees: [3, 2, 1, 2, 3, 3, 3, r]
+            beats: [q, q, q, q, q, q, h, w]
+          - name: chords
+            octave: 3
+            chords: [I, V, I, I]
+            beats: [w]
+            velocity: 60
+```
+
+Change `root` to `Eb` or `scale` to `dorian` and build again: the same numbers make a different tune.
+
+**3. Instruments.** Give each voice a sound: `instrument: pluck` on the melody and `instrument: soft_pad` on the chords. Then give the pad some space by declaring a variant of it in the piece:
+
+```yaml
+        instruments:
+          pad: {use: soft_pad, reverb: {seconds: 2, mix: 0.3}, pan: -0.3}
+```
+
+and use `instrument: pad` instead.
+
+**4. Sections and a form.** Move the voices under a section, add a second section that plays the melody backwards over different chords, and choose the order. The melody becomes a motif so both sections can share it:
+
+```yaml
+        motifs:
+          tune: {degrees: [3, 2, 1, 2, 3, 3, 3, r], beats: [q, q, q, q, q, q, h, w]}
+        sections:
+          a:
+            voices:
+              - {name: melody, instrument: pluck, motif: tune}
+              - {name: chords, instrument: pad, octave: 3, chords: [I, V, I, I], beats: [w], velocity: 60}
+          b:
+            voices:
+              - {name: melody, instrument: pluck, motif: tune, retrograde: true, invert: true}
+              - {name: chords, instrument: pad, octave: 3, chords: [IV, I, V, V], beats: [w], velocity: 60}
+        form: [a, b, a]
+```
+
+A piece has either `voices` or `sections`, so delete the old `voices` list.
+
+**5. Improvise.** Add a third section whose melody wanders through the motif's notes, and put it in the form:
+
+```yaml
+          c:
+            voices:
+              - {name: melody, instrument: glass, motif: tune, improv: {method: markov, length: 8}}
+              - {name: chords, instrument: pad, octave: 3, chords: [vi, IV, V, I], beats: [w], velocity: 60}
+        form: [a, b, c, a]
+        seed: 1
+```
+
+Each build gives the same notes. Change `seed` for another take.
+
+**6. Look around.** `make docs` opens dbt docs in your browser. Your piece's page shows its YAML under Details, and its lineage graph runs from `pluck` and `soft_pad` through every model to `render_wav`. Open `output/first_tune.mid` in a DAW to hear it on other instruments.
 
 ## Writing a piece
 
@@ -230,6 +317,12 @@ After adding, renaming or removing a piece or instrument, run `make build` (or `
 
 `render_midi`, another Python model, writes `int_score__note_events` as a Standard MIDI File without third-party libraries: a tempo and time-signature track, then one named track and channel per voice (channel 10 is skipped, since General MIDI keeps it for drums). MIDI holds pitches, velocities and written lengths, so instruments, releases and effects are left to whatever plays it.
 
+## Browsing
+
+- `make docs` generates and serves dbt docs. Each piece's page shows its music under Details → Meta, and lineage shows which instruments it uses. The overview page explains where to look.
+- `make score PIECE=<piece>` prints a built piece's notes by section, bar and beat, with chords spelled out (`analyses/score_listing.sql`).
+- `int_score__note_events` is the score as a table, for any query you like.
+
 ## Layout
 
 ```
@@ -241,6 +334,7 @@ models/
   intermediate/        int_{topic}__{transformation}: theory, form, timing, the score
   render/              partials, mixed samples, effects, WAV and MIDI output
 macros/                compose(), instrument(), the generated registry and helpers
+analyses/score_listing.sql  a piece's notes by bar and beat, for make score
 scripts/check_layers.py  enforces which layers may read which, and model naming
 scripts/build_registry.py writes macros/registry.sql from the piece and instrument YAML
 scripts/new_model.py   creates a piece or instrument from its template

@@ -1,0 +1,14 @@
+exposures:
+  - name: rendered_pieces
+    label: Rendered pieces
+    type: application
+    maturity: high
+    description: >
+      The WAV and MIDI files dbt build writes to the output_dir var, one of
+      each per piece: output/<piece>.wav to listen to, output/<piece>.mid
+      to open in a DAW or notation program.
+    owner:
+      name: dbtrope
+    depends_on:
+      - ref('render_wav')
+      - ref('render_midi')

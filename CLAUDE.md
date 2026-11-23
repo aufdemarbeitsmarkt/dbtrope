@@ -10,6 +10,8 @@ A dbt project that composes music. Pieces are written in YAML, turned into a sco
 - `make check`: `dbt parse`, then check layer and naming rules (`scripts/check_layers.py`)
 - `make build`: `make check`, then `dbt build`
 - `make build TARGET=ci`: build against an in-memory DuckDB, as CI does
+- `make docs`: generate and serve dbt docs, a browser for every piece, instrument and model with lineage
+- `make score PIECE=…`: list a built piece's notes by bar and beat (`analyses/score_listing.sql`)
 - `make clean`: remove `target/`, rendered WAV and MIDI files in `output/` and local `.duckdb` files
 
 The dev database is `dbtrope.duckdb` in the project root; override with `DBTROPE_DUCKDB_PATH`. Rendered WAV and MIDI files go to `output/` (the `output_dir` var). The sample rate is the `sample_rate` var.
