@@ -4,7 +4,7 @@ BIN    := $(VENV)/bin
 DBT    := $(BIN)/dbt
 TARGET ?= dev
 
-.PHONY: install parse check build test docs score clean new-piece new-instrument
+.PHONY: install parse check build test docs score clean new-piece new-instrument new-effect
 
 install: $(VENV)/.installed
 
@@ -39,12 +39,15 @@ docs: install
 score: install
 	$(DBT) show --select score_listing --target $(TARGET) --limit 1000 $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
-# make new-piece NAME=my_piece, make new-instrument NAME=my_instrument
+# make new-piece NAME=my_piece, make new-instrument NAME=my_instrument, make new-effect NAME=my_effect
 new-piece: install
 	$(BIN)/python scripts/new_from_template.py piece $(NAME)
 
 new-instrument: install
 	$(BIN)/python scripts/new_from_template.py instrument $(NAME)
+
+new-effect: install
+	$(BIN)/python scripts/new_from_template.py effect $(NAME)
 
 clean:
 	$(DBT) clean

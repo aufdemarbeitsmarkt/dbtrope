@@ -1,0 +1,13 @@
+# Template for a new stored effect. Create one with:
+#
+#     make new-effect NAME=my_effect
+#
+# which writes effects/my_effect.yml from everything below the header line.
+# Any instrument can then start from it with `effects: {reverb: {use: my_effect}}`,
+# changing settings beside use:. Keep one effect, and delete the other.
+# --- end of template header ---
+description: Describe the effect's sound here.
+# reflections that fade by 60 dB over `seconds`, at `mix` against the dry sound
+reverb: {seconds: 1.5, mix: 0.25}
+# or echoes `seconds` apart, each `feedback` times the one before
+# delay: {seconds: 0.25, feedback: 0.4, repeats: 3}

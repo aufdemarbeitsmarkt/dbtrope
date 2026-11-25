@@ -1,0 +1,2 @@
+description: One quick echo, as off a near wall, for plucked and percussive sounds.
+delay: {seconds: 0.11, feedback: 0.35, repeats: 1}

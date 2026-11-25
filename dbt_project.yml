@@ -18,9 +18,10 @@ vars:
   # 22050 for drafts, 44100 for final renders
   sample_rate: 22050
   output_dir: output
-  # where piece and stored instrument files are read from
+  # where piece, stored instrument and stored effect files are read from
   pieces_dir: pieces
   instruments_dir: instruments
+  effects_dir: effects
   # what to render: a piece name, a path to a .yml file, or all. dbt build and
   # dbt run stop unless it's given: --vars '{piece: nocturne}' (see macros/require_piece.sql)
   piece: null
