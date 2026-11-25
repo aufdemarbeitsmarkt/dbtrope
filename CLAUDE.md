@@ -26,3 +26,8 @@ The dev database is `dbtrope.duckdb` in the project root; override with `DBTROPE
 - Each effect is its own intermediate model (`int_taps__delayed`, `int_taps__reverberated`) reading its rows of `base/piece_instrument_effects`; a new effect adds a model, a row in `seeds/seed_effect_names.csv`, and the model to the list in `core/instrument_effect_taps`. Effect names are reserved: no named or stored effect may take one. Instruments list effects under `effects:`, keyed by name; a piece names shared effects under its own `effects:` (`base/piece_effects`), and an instrument's effect points to one, or to a stored effect in `effects/`, with `use:`.
 - Randomness must be deterministic: derive it from `hash()` of a seed and an index, never `random()`.
 - Every directory of dbt resources has one YAML file, named for the directory with a leading underscore, documenting everything in it: `models/base/_base.yml`, `models/core/_core.yml`, `seeds/_seeds.yml`, `macros/_macros.yml`, `analyses/_analyses.yml`, `tests/_tests.yml`, `tests/generic/_generic.yml`. Never a per-resource `.yml`. Every model's `description:` states its grain; every seed, macro, analysis and singular test also gets one. Models go in lineage order, with that directory's unit tests. `make check` enforces this.
+
+## Git
+
+- Name branches for the change, such as `effect-presets` or `sql-comments`, with no prefix like `claude/`.
+- Stack a new PR on the most recent open PR's branch, and target that branch.
