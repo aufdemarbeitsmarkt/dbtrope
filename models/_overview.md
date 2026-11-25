@@ -31,7 +31,7 @@ and `output/<piece>.mid`.
 | Layer | Holds |
 |---|---|
 | `base/` | Theory tables from seeds; piece and instrument files read and flattened into rows |
-| `intermediate/` | The steps that build the score (improvisation, pitch and sequencing) and one model per effect's taps |
+| `intermediate/` | The steps that build the score (improvisation, pitch and sequencing), and in `effects/`, one model per effect's taps |
 | `core/` | What render and analyses read: sections, the ensemble and the score |
 | `render/` | Partials, per-instrument samples, effects, the mix, WAV and MIDI |
 

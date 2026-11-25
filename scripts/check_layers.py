@@ -11,6 +11,9 @@ Rules:
   - models in intermediate/ are named int_{topic}__{transformation}
   - no model outside intermediate/ uses the int_ prefix, and no model uses stg_
   - seeds are named seed_<name>, and no model uses the seed_ prefix
+  - every model in intermediate/effects/ declares a unique effect name with
+    config(meta={'effect_name': ...}), no other model declares one, and
+    core/instrument_effect_taps reads every effect model
   - every model, seed, analysis, singular data test and macro (generic tests
     included) has a description, written in its directory's _<directory>.yml
 """
@@ -29,6 +32,8 @@ ALLOWED_UPSTREAM = {
 
 # analyses read the objects core/ and render/ finish, never the steps that build them
 ANALYSIS_UPSTREAM = {"core", "render"}
+
+EFFECTS_DIR = "models/intermediate/effects/"
 
 INTERMEDIATE_NAME = re.compile(r"^int_[a-z0-9]+(_[a-z0-9]+)*__[a-z0-9]+(_[a-z0-9]+)*$")
 
@@ -88,7 +93,42 @@ def check(manifest: dict) -> list[str]:
                     f"{layer} may only read: {', '.join(sorted(ALLOWED_UPSTREAM[layer]))}"
                 )
 
+    errors.extend(check_effects(nodes, project))
     errors.extend(check_documentation(manifest))
+    return errors
+
+
+def check_effects(nodes: dict, project: str) -> list[str]:
+    errors = []
+    models = [
+        node
+        for node in nodes.values()
+        if node["package_name"] == project and node["resource_type"] == "model"
+    ]
+    effect_names = {}
+    for node in sorted(models, key=lambda n: n["name"]):
+        effect_name = (node["config"].get("meta") or {}).get("effect_name")
+        is_effect_model = node["original_file_path"].startswith(EFFECTS_DIR)
+        if is_effect_model and not effect_name:
+            errors.append(
+                f"{node['name']}: models in {EFFECTS_DIR} declare their effect's name "
+                "with config(meta={'effect_name': ...})"
+            )
+        elif not is_effect_model and effect_name:
+            errors.append(f"{node['name']}: only models in {EFFECTS_DIR} declare an effect_name")
+        elif effect_name in effect_names:
+            errors.append(
+                f"{node['name']}: effect_name {effect_name} is already declared by "
+                f"{effect_names[effect_name]}"
+            )
+        elif effect_name:
+            effect_names[effect_name] = node["name"]
+
+    taps = next((node for node in models if node["name"] == "instrument_effect_taps"), None)
+    if taps is not None:
+        read = {nodes[upstream]["name"] for upstream in taps["depends_on"]["nodes"] if upstream in nodes}
+        for model_name in sorted(set(effect_names.values()) - read):
+            errors.append(f"{model_name}: add it to effect_tap_models in instrument_effect_taps")
     return errors
 
 

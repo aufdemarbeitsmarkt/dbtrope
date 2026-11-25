@@ -1,5 +1,5 @@
-# Every model in intermediate/: the steps that build the score (improvisation,
-# pitch and sequencing) and each effect's taps. Only core/ reads them.
+# Every model directly in intermediate/: the steps that build the score (improvisation,
+# pitch and sequencing). Each effect's taps are in effects/. Only core/ reads them.
 # Models are in lineage order.
 
 models:
@@ -112,75 +112,6 @@ models:
           - expression_is_true:
               arguments:
                 expression: "> 0"
-
-  - name: int_taps__delayed
-    description: >
-      Each echo of each instrument's delay, one row per piece_id,
-      instrument_name and tap_index. Echo n arrives n times seconds after
-      the dry sound at feedback to the power n in both channels. Defaults:
-      seconds 0.25, feedback 0.4, repeats 3.
-    data_tests:
-      - unique_combination_of_columns:
-          arguments:
-            combination_of_columns: [piece_id, instrument_name, tap_index]
-    columns:
-      - name: piece_id
-        data_tests: [not_null]
-      - name: instrument_name
-        data_tests: [not_null]
-      - name: tap_index
-        description: The echo's number, from 1.
-        data_tests: [not_null]
-      - name: delay_seconds
-        description: How long after the dry sound the echo arrives.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: "> 0"
-      - name: left_gain
-        description: The echo's level; below 1, so echoes fade.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 0 and left_gain < 1"
-      - name: right_gain
-        data_tests: [not_null]
-
-  - name: int_taps__reverberated
-    description: >
-      Each reflection of each instrument's reverb, one row per piece_id,
-      instrument_name and tap_index. 24 reflections are spread over the
-      reverb's seconds after a 20 ms predelay, alternating between the
-      channels and fading by 60 dB by the end, at mix against the dry
-      sound. Defaults: seconds 1.5, mix 0.25.
-    data_tests:
-      - unique_combination_of_columns:
-          arguments:
-            combination_of_columns: [piece_id, instrument_name, tap_index]
-    columns:
-      - name: piece_id
-        data_tests: [not_null]
-      - name: instrument_name
-        data_tests: [not_null]
-      - name: tap_index
-        description: The reflection's number, from 1; odd ones are left, even ones right.
-        data_tests: [not_null]
-      - name: delay_seconds
-        description: How long after the dry sound the reflection arrives.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: "> 0"
-      - name: left_gain
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 0"
-      - name: right_gain
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 0"
 
 unit_tests:
   - name: markov_walks_restart_from_the_first_pitch_at_a_dead_end
@@ -437,26 +368,3 @@ unit_tests:
         - {voice_id: backwards, repetition_index: 1, event_index: 1, start_beats: 2, duration_beats: 1}
         - {voice_id: twice_as_slow, repetition_index: 1, event_index: 1, start_beats: 0, duration_beats: 2}
         - {voice_id: twice_as_slow, repetition_index: 1, event_index: 2, start_beats: 2, duration_beats: 1}
-
-  - name: delays_echo_at_falling_levels
-    model: int_taps__delayed
-    given:
-      - input: ref('piece_instrument_effects')
-        format: sql
-        rows: |
-          select
-              'p' as piece_id,
-              'echoing' as instrument_name,
-              'delay' as effect_name,
-              '{"seconds": 0.5, "feedback": 0.5, "repeats": 2}'::json as effect_settings
-          union all
-          select
-              'p' as piece_id,
-              'roomy' as instrument_name,
-              'reverb' as effect_name,
-              '{}'::json as effect_settings
-    expect:
-      rows:
-        # only the delay makes echoes; the reverb is another model's
-        - {instrument_name: echoing, effect_name: delay, tap_index: 1, delay_seconds: 0.5, left_gain: 0.5, right_gain: 0.5}
-        - {instrument_name: echoing, effect_name: delay, tap_index: 2, delay_seconds: 1, left_gain: 0.25, right_gain: 0.25}

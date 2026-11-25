@@ -35,6 +35,10 @@ models:
       +materialized: view
     intermediate:
       +materialized: view
+      effects:
+        # every effect returns the same columns, declared once in _effects.yml
+        +contract:
+          enforced: true
     render:
       +materialized: table
 

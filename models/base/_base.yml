@@ -511,7 +511,7 @@ models:
       An instrument has an effect when its name is under effects:, even as
       {}; a piece's effects: {delay: null} turns off a stored instrument's.
       An effect with use: starts from the piece's named effect in
-      piece_effects, or else the stored effect of that name in effects. Each effect's model in intermediate/ reads its own rows
+      piece_effects, or else the stored effect of that name in effects. Each effect's model in intermediate/effects/ reads its own rows
       and fills in defaults.
     data_tests:
       - unique_combination_of_columns:
