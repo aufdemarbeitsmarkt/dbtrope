@@ -36,3 +36,9 @@ models:
       +materialized: view
     render:
       +materialized: table
+
+flags:
+  # dbt reads a generic test's arguments from YAML but not from its Jinja, so
+  # every documented argument in tests/generic/_generic.yml warns that the count
+  # doesn't match. Turn this back on once dbt checks generic tests correctly.
+  validate_macro_args: false
