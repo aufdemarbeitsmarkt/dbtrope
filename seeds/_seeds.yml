@@ -64,17 +64,3 @@ seeds:
     columns:
       - name: numeral
         data_tests: [unique, not_null]
-
-  - name: seed_effect_names
-    description: >
-      Every effect an instrument can have, one row per effect_name; each has
-      its own taps model in intermediate/. An effect name
-      not listed here fails the build, and stored and named effects can't
-      take these names.
-    config:
-      column_types:
-        effect_name: varchar
-        description: varchar
-    columns:
-      - name: effect_name
-        data_tests: [unique, not_null]
