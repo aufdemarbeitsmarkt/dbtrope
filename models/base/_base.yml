@@ -500,9 +500,10 @@ models:
       - name: effect_name
         description: Which effect it is, such as reverb.
         data_tests:
-          - accepted_values:
+          - relationships:
               arguments:
-                values: [delay, reverb]
+                to: ref('seed_effect_names')
+                field: effect_name
       - name: effect_settings
         description: The effect's settings as JSON.
 
@@ -529,9 +530,10 @@ models:
           The effect's key under effects:. A name with no effect model
           fails here, naming the piece and instrument.
         data_tests:
-          - accepted_values:
+          - relationships:
               arguments:
-                values: [delay, reverb]
+                to: ref('seed_effect_names')
+                field: effect_name
       - name: named_effect
         description: The named effect it uses, from use:; null when it uses none.
       - name: named_effect_source
