@@ -31,7 +31,7 @@ models:
       The piece files the build reads, one row per piece_id, with each
       file's YAML as JSON. The piece var chooses them: a piece name
       (nocturne), a path to a .yml file anywhere, or all for every .yml in
-      the pieces_dir var (pieces/). dbt build stops if it isn't given. A piece's id is its
+      the pieces_dir var (music/pieces/). dbt build stops if it isn't given. A piece's id is its
       file name.
     config:
       pieces_dir: "{{ var('pieces_dir') }}"
@@ -327,7 +327,7 @@ models:
   - name: instruments
     description: >
       The stored instrument library, one row per instrument_name: every
-      .yml in the instruments_dir var (instruments/), with its YAML as
+      .yml in the instruments_dir var (music/instruments/), with its YAML as
       JSON. An instrument's name is its file name. Every build reads the
       whole library, whichever pieces it renders.
     config:
@@ -345,7 +345,7 @@ models:
   - name: effects
     description: >
       The stored effect library, one row per named_effect: every .yml in the
-      effects_dir var (effects/), with its YAML as JSON. A file holds one
+      effects_dir var (music/effects/), with its YAML as JSON. A file holds one
       effect beside an optional description, as reverb: {seconds: 2.5}, and
       its name is the name an instrument's effect gives in use:. Every build
       reads the whole library, whichever pieces it renders.

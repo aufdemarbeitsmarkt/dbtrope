@@ -41,7 +41,7 @@ instrument_effects as (
 
 /*
     An effect with use: starts from the piece's named effect of that name,
-    or else the stored effect in effects/. When the piece
+    or else the stored effect in music/effects/. When the piece
     writes use: itself, its keys replace the stored instrument's for that
     effect, so a stored reverb doesn't leak into the named one; otherwise
     the stored instrument's keys apply over the named effect.

@@ -2,10 +2,10 @@
 #
 #     make new-piece NAME=my_piece
 #
-# which writes pieces/my_piece.yml from everything below the header line.
+# which writes music/pieces/my_piece.yml from everything below the header line.
 # The file's name is the piece's name. Every key is optional except sections
 # (or voices, for a piece with only one section); delete what you don't need.
-# The README lists the finished examples in pieces/.
+# The README lists the finished examples in music/pieces/.
 # --- end of template header ---
 description: Describe the piece here.
 tempo: 120                      # quarter-note beats per minute
@@ -15,12 +15,12 @@ seed: 0                         # seeds improvised voices; change it for another
 
 # Effects that several instruments can share, by name. An instrument uses
 # one with effects: {reverb: {use: wide_room}}, and can change settings
-# beside use:. use: also finds the stored effects in effects/, such as hall.
+# beside use:. use: also finds the stored effects in music/effects/, such as hall.
 effects:
   wide_room: {reverb: {seconds: 1.8, mix: 0.3}}    # seconds to fade by 60 dB
 
 # Instruments for this piece only. Voices can also name any stored
-# instrument in instruments/ without declaring it here.
+# instrument in music/instruments/ without declaring it here.
 instruments:
   # a stored instrument with some settings changed
   lead:

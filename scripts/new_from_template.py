@@ -1,10 +1,10 @@
-"""Create a piece, stored instrument or stored effect file from its template in templates/.
+"""Create a piece, stored instrument or stored effect file from its template in music/templates/.
 
     python scripts/new_from_template.py piece my_piece
     python scripts/new_from_template.py instrument my_instrument
     python scripts/new_from_template.py effect my_effect
 
-Writes pieces/<name>.yml, instruments/<name>.yml or effects/<name>.yml from templates/<kind>.yml,
+Writes music/pieces/<name>.yml, music/instruments/<name>.yml or music/effects/<name>.yml from music/templates/<kind>.yml,
 without the template's header comment. `make new-piece NAME=…` and
 `make new-instrument NAME=…` and `make new-effect NAME=…` call it.
 """
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DIRECTORIES = {"piece": ROOT / "pieces", "instrument": ROOT / "instruments", "effect": ROOT / "effects"}
+DIRECTORIES = {"piece": ROOT / "music" / "pieces", "instrument": ROOT / "music" / "instruments", "effect": ROOT / "music" / "effects"}
 VALID_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 # the template's header explains how to use the template; the new file starts after it
 HEADER_END = "# --- end of template header ---\n"
@@ -32,7 +32,7 @@ def main(argv: list[str]) -> int:
         print(f"{path.relative_to(ROOT)} already exists", file=sys.stderr)
         return 1
 
-    template = (ROOT / "templates" / f"{kind}.yml").read_text()
+    template = (ROOT / "music" / "templates" / f"{kind}.yml").read_text()
     path.parent.mkdir(exist_ok=True)
     path.write_text(template.split(HEADER_END, 1)[1])
 
