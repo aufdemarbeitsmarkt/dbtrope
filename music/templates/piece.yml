@@ -20,14 +20,16 @@ instruments:
   lead:
     use: pluck
     pan: 0.2
-    delay: {seconds: 0.375, feedback: 0.35, repeats: 3}  # echoes; seconds between them
+    effects:
+      delay: {seconds: 0.375, feedback: 0.35, repeats: 3}  # echoes; seconds between them
   # an instrument defined only for this piece
   organ:
     partials: [[1, 1], [2, 0.5], [3, 0.25], [4, 0.12]]   # [frequency ratio, amplitude]
     adsr: {a: 0.02, d: 0.1, s: 0.8, r: 0.3}              # seconds, seconds, level, seconds
     range: [C2, C6]
     pan: -0.2
-    reverb: {seconds: 1.8, mix: 0.3}                     # seconds to fade by 60 dB
+    effects:
+      reverb: {seconds: 1.8, mix: 0.3}                   # seconds to fade by 60 dB
 
 # Motifs are phrases that voices can play, by name, in any section.
 # A motif holds any keys a voice can have; the voice's own keys win.

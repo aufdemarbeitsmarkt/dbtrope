@@ -55,7 +55,7 @@ Change `root` to `Eb` or `scale` to `dorian` and build again: the same numbers m
 
 ```yaml
 instruments:
-  pad: {use: soft_pad, reverb: {seconds: 2, mix: 0.3}, pan: -0.3}
+  pad: {use: soft_pad, effects: {reverb: {seconds: 2, mix: 0.3}}, pan: -0.3}
 ```
 
 and use `instrument: pad` instead.
@@ -262,17 +262,17 @@ voices:
 
 #### Effects
 
-An instrument can have a delay and a reverb, stored or set in the piece like any other key:
+An instrument's effects go under `effects:`, by name, stored or set in the piece like any other key:
 
 ```yaml
 instruments:
-  lead: {use: pluck, delay: {seconds: 0.375, feedback: 0.35, repeats: 3}}
-  hall: {use: soft_pad, reverb: {seconds: 1.8, mix: 0.3}}
+  lead: {use: pluck, effects: {delay: {seconds: 0.375, feedback: 0.35, repeats: 3}}}
+  hall: {use: soft_pad, effects: {reverb: {seconds: 1.8, mix: 0.3}}}
 ```
 
 - **delay**: `repeats` echoes, `seconds` apart, each `feedback` times the level of the one before. Defaults: 0.25 s, 0.4, 3.
 - **reverb**: 24 reflections spread over `seconds` and alternating between the channels, fading by 60 dB by the end; `mix` is their level against the dry sound. Defaults: 1.5 s, 0.25. It's a multi-tap delay rather than a feedback reverb (SQL can't easily feed a sample back into later ones), so it suits pads and sustained sounds better than short percussive ones, where the reflections can be heard separately.
-- Writing the key, even as `{}`, turns the effect on with its defaults. A piece's `delay: null` or `reverb: null` turns off a stored instrument's.
+- Writing an effect's name, even as `delay: {}`, turns it on with its defaults. A piece overrides a stored instrument's effects one value at a time, like `adsr`, and `effects: {delay: null}` turns one off. An unknown effect name fails the build.
 - The piece lasts until the last echo or reflection fades.
 
 Every build reads the whole instrument library, so after changing an instrument, rebuild the pieces that use it. `piece_instruments` shows which pieces use which instruments.
@@ -283,8 +283,8 @@ Pieces and instruments are plain YAML files, not dbt models: there's nothing to 
 
 ## How a note becomes sound
 
-1. `base/piece_files` and `base/instruments` read the piece and instrument files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments` and `piece_instrument_partials`.
-2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section.
+1. `base/piece_files` and `base/instruments` read the piece and instrument files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments`, `piece_instrument_partials` and `piece_instrument_effects`.
+2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section. Each effect has its own model: `int_taps__delayed` and `int_taps__reverberated` turn an instrument's delay and reverb settings into taps, delayed and scaled copies of its sound.
 3. `core/` holds what the rest of the project reads. `sections` lays the sections out along the form. `score_notes` places each event in its section and holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`. `ensemble`, `instrument_partials` and `instrument_effect_taps` hold each piece's instruments with their ranges, harmonics and effects.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
 5. `instrument_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains and sums it by instrument and `sample_index`.

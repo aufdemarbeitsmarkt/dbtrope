@@ -16,7 +16,7 @@ motifs:
     beats: [w]
     velocity: 85
 instruments:
-  keys: {use: pluck, adsr: {d: 0.6, s: 0.1}, reverb: {seconds: 0.8, mix: 0.15}}
+  keys: {use: pluck, adsr: {d: 0.6, s: 0.1}, effects: {reverb: {seconds: 0.8, mix: 0.15}}}
 sections:
   theme:
     voices:

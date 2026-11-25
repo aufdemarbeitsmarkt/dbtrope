@@ -414,42 +414,10 @@ models:
         description: The lowest note the instrument should play, if it has a range.
       - name: highest_note_name
         description: The highest note the instrument should play, if it has a range.
-      - name: delay_seconds
-        description: Time between echoes, for an instrument with a delay; null otherwise. Defaults to 0.25.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: "> 0"
-              config:
-                where: "delay_seconds is not null"
-      - name: delay_feedback
-        description: Each echo's level relative to the one before, from 0 to just under 1. Defaults to 0.4.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 0 and delay_feedback < 1"
-      - name: delay_repeats
-        description: How many echoes the delay plays. Defaults to 3.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 1"
-      - name: reverb_seconds
+      - name: effects
         description: >
-          How long the reverb takes to fade by 60 dB, for an instrument with
-          a reverb; null otherwise. Defaults to 1.5.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: "> 0"
-              config:
-                where: "reverb_seconds is not null"
-      - name: reverb_mix
-        description: The reverb's level relative to the dry sound. Defaults to 0.25.
-        data_tests:
-          - expression_is_true:
-              arguments:
-                expression: ">= 0"
+          The instrument's effects as a JSON object keyed by effect name,
+          after the piece's overrides; null when it has none.
 
   - name: piece_instrument_partials
     description: >
@@ -481,6 +449,34 @@ models:
           - expression_is_true:
               arguments:
                 expression: ">= 0"
+
+  - name: piece_instrument_effects
+    description: >
+      Each effect on each piece's instruments, one row per piece_id,
+      instrument_name and effect_name, with the effect's settings as JSON.
+      An instrument has an effect when its name is under effects:, even as
+      {}; a piece's effects: {delay: null} turns off a stored instrument's.
+      Each effect's model in intermediate/ reads its own rows and fills in
+      defaults.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, effect_name]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: instrument_name
+        data_tests: [not_null]
+      - name: effect_name
+        description: >
+          The effect's key under effects:. A name with no effect model
+          fails here, naming the piece and instrument.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [delay, reverb]
+      - name: effect_settings
+        description: The effect's settings as JSON; {} for all defaults.
 
 unit_tests:
   - name: short_lists_repeat_and_empty_lists_are_unset
