@@ -76,7 +76,8 @@ resolved as (
         json_merge_patch(
             coalesce(library.definition, '{}'),
             coalesce(named_declarations.declaration, '{}')
-        ) as settings
+        ) as settings,
+        (named_declarations.declaration -> 'effects') as declared_effects
     from named_declarations
     left join library
         on library.instrument_name = named_declarations.library_instrument_name
@@ -96,5 +97,6 @@ select
     coalesce((settings ->> 'pan')::double, 0) as pan,
     (settings -> 'range' ->> 0) as lowest_note_name,
     (settings -> 'range' ->> 1) as highest_note_name,
-    (settings -> 'effects') as effects
+    (settings -> 'effects') as effects,
+    declared_effects
 from resolved
