@@ -1,4 +1,4 @@
-{#-
+/*
     One model holds every improvisation method while there are two
     (permutation and markov), each a chain of CTEs filtered on improv_method.
     The next method should split them: one intermediate model per method
@@ -6,7 +6,7 @@
     piece_id, section_name, voice_id, event_index and pitch_spec, with this
     model only unioning them and applying the written rhythm. Then one
     method's failure or rework doesn't touch the others.
-#}
+*/
 {#-
     Randomness comes from hash() of the voice's seed, the piece, section and
     voice, and an index, so a rebuild plays the same notes and two voices
