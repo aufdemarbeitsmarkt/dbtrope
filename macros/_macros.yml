@@ -7,3 +7,13 @@ macros:
       `all`. Without it the run stops before anything is built, rather than
       rendering every piece in music/pieces/ by accident. parse, compile, ls, show
       and docs don't render, so they don't need it.
+
+  - name: effect_models
+    description: >
+      Every effect, as a map from its name to the model that builds its
+      taps. Each effect model in intermediate/ declares its name with
+      config(meta={'effect_name': ...}), beside the logic that reads its
+      settings, so adding an effect needs no list of names to keep up.
+      The is_effect_name test, the named_effects_avoid_effect_names test and
+      instrument_effect_taps read it. Empty while dbt parses, since the graph
+      is only filled in when dbt executes.

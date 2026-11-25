@@ -1,3 +1,7 @@
+{#- The effect's name: its key under effects:, reserved from named and stored effects (macros/effect_models.sql). #}
+{%- set effect_name = 'reverb' %}
+{{ config(meta={'effect_name': effect_name}) }}
+
 {#- Enough reflections that the reverb blurs rather than echoes, few enough to stay quick. #}
 {%- set reverb_tap_count = 24 %}
 {#- The first reflection arrives this long after the dry sound. #}
@@ -10,7 +14,7 @@ with reverbs as (
         coalesce((effect_settings ->> 'seconds')::double, 1.5) as reverb_seconds,
         coalesce((effect_settings ->> 'mix')::double, 0.25) as reverb_mix
     from {{ ref('piece_instrument_effects') }}
-    where effect_name = 'reverb'
+    where effect_name = '{{ effect_name }}'
 ),
 
 /*
@@ -56,7 +60,7 @@ reverb_taps as (
 select
     piece_id,
     instrument_name,
-    'reverb' as effect_name,
+    '{{ effect_name }}' as effect_name,
     tap_index,
     delay_seconds,
     case when _is_left then _tap_gain else 0 end as left_gain,

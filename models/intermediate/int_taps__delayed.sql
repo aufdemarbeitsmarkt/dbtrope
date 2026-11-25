@@ -1,3 +1,7 @@
+{#- The effect's name: its key under effects:, reserved from named and stored effects (macros/effect_models.sql). #}
+{%- set effect_name = 'delay' %}
+{{ config(meta={'effect_name': effect_name}) }}
+
 with delays as (
     select
         piece_id,
@@ -6,7 +10,7 @@ with delays as (
         coalesce((effect_settings ->> 'feedback')::double, 0.4) as delay_feedback,
         coalesce((effect_settings ->> 'repeats')::integer, 3) as delay_repeats
     from {{ ref('piece_instrument_effects') }}
-    where effect_name = 'delay'
+    where effect_name = '{{ effect_name }}'
 ),
 
 delay_tap_indexes as (
@@ -23,7 +27,7 @@ delay_tap_indexes as (
 select
     piece_id,
     instrument_name,
-    'delay' as effect_name,
+    '{{ effect_name }}' as effect_name,
     tap_index,
     (delay_seconds * tap_index) as delay_seconds,
     pow(delay_feedback, tap_index) as left_gain,
