@@ -25,3 +25,18 @@ macros:
       - name: column_name
         type: optional[string]
         description: the column the test is on, if any
+
+  - name: test_is_effect_name
+    description: >
+      Fails for each row whose column isn't the name of an effect, as the
+      effect models declare them (effect_models), or one of also.
+    arguments:
+      - name: model
+        type: relation
+        description: the model the test is on
+      - name: column_name
+        type: string
+        description: the column holding effect names
+      - name: also
+        type: list[string]
+        description: other names to accept, such as dry
