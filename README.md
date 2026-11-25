@@ -101,6 +101,7 @@ The quickest start is a template:
 ```sh
 make new-piece NAME=my_piece            # music/pieces/my_piece.yml
 make new-instrument NAME=my_instrument  # music/instruments/my_instrument.yml
+make new-effect NAME=my_effect          # music/effects/my_effect.yml
 make build PIECE=my_piece               # writes output/my_piece.wav and .mid
 ```
 
@@ -284,17 +285,26 @@ instruments:
   ```
 
   When the piece writes `use:`, the stored instrument's own settings for that effect are dropped, so `bell` gets hall's 2.5 s rather than glass's 1.2 s. The build fails if `use:` names an effect the piece doesn't define, or one of another kind, such as a named reverb under `delay:`. `round_in_f` shares one echo between its two voices this way.
+- Effects used across pieces are stored in `music/effects/`, one per file, like instruments. The file's name is the name `use:` gives; a piece's own named effect wins over a stored one of the same name:
+
+  ```yaml
+  # music/effects/hall.yml
+  description: A large hall's long, soft tail, for pads and slow melodies.
+  reverb: {seconds: 2.5, mix: 0.3}
+  ```
+
+  `hall`, `room` (a short reverb) and `slapback` (one quick echo) are stored now; `nocturne` uses `hall` with its mix raised. `make new-effect NAME=…` starts a new one. `piece_instrument_effects` shows where each instrument's effects came from.
 - The piece lasts until the last echo or reflection fades.
 
-Every build reads the whole instrument library, so after changing an instrument, rebuild the pieces that use it. `piece_instruments` shows which pieces use which instruments.
+Every build reads the whole instrument and effect libraries, so after changing a stored instrument or effect, rebuild the pieces that use it. `piece_instruments` shows which pieces use which instruments.
 
 ### How files get into the build
 
-Pieces and instruments are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Two Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads the piece the `piece` var names, or every `.yml` in the `pieces_dir` var for `piece: all`, and `instruments` reads every `.yml` in the `instruments_dir` var. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
+Pieces, instruments and effects are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Three Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads the piece the `piece` var names, or every `.yml` in the `pieces_dir` var for `piece: all`, and `instruments` and `effects` read every `.yml` in the `instruments_dir` and `effects_dir` vars. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
 
 ## How a note becomes sound
 
-1. `base/piece_files` and `base/instruments` read the piece and instrument files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments`, `piece_instrument_partials` and `piece_instrument_effects`, starting any effect with `use:` from the piece's named effects in `piece_effects`.
+1. `base/piece_files`, `base/instruments` and `base/effects` read the piece, instrument and effect files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments`, `piece_instrument_partials` and `piece_instrument_effects`, starting any effect with `use:` from the piece's named effects in `piece_effects` or the stored ones in `effects`.
 2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section. Each effect has its own model: `int_taps__delayed` and `int_taps__reverberated` turn an instrument's delay and reverb settings into taps, delayed and scaled copies of its sound.
 3. `core/` holds what the rest of the project reads. `sections` lays the sections out along the form. `score_notes` places each event in its section and holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`. `ensemble`, `instrument_partials` and `instrument_effect_taps` hold each piece's instruments with their ranges, harmonics and effects.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
@@ -316,7 +326,8 @@ Pieces and instruments are plain YAML files, not dbt models: there's nothing to 
 music/
   pieces/              one .yml per composition
   instruments/         one .yml per stored instrument
-  templates/           commented starting points for a piece and an instrument
+  effects/             one .yml per stored effect
+  templates/           commented starting points for a piece, an instrument and an effect
 seeds/                 seed_<name>.csv: music theory reference tables
 models/
   base/                theory tables from seeds; piece and instrument files read and flattened into rows
@@ -340,5 +351,6 @@ docs/sql_style.md      how SQL is written here
 | Piece to render | `piece` var: a name, a path to a `.yml` file, or `all` | none: required by `dbt build` and `dbt run` |
 | Piece folder | `pieces_dir` var | `music/pieces` |
 | Instrument folder | `instruments_dir` var | `music/instruments` |
+| Effect folder | `effects_dir` var | `music/effects` |
 
 Override vars per run: `dbt build --vars '{piece: nocturne, sample_rate: 44100}'`.

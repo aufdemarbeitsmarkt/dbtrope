@@ -15,6 +15,9 @@ and `output/<piece>.mid`.
 - **Instruments** are rows of `instruments`, one per file in
   `music/instruments/`. `piece_instruments` shows which instruments each piece
   uses and how each was resolved.
+- **Stored effects** are rows of `effects`, one per file in `music/effects/`.
+  `piece_instrument_effects` shows each instrument's effects, and which
+  named effect each started from.
 - **The score** is `score_notes`: one row per sounding note,
   with its section, instrument, pitch, velocity and timing. To read a
   piece by bar and beat, run `make score PIECE=<piece>`.

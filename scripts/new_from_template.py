@@ -1,11 +1,12 @@
-"""Create a piece or stored instrument file from its template in music/templates/.
+"""Create a piece, stored instrument or stored effect file from its template in music/templates/.
 
     python scripts/new_from_template.py piece my_piece
     python scripts/new_from_template.py instrument my_instrument
+    python scripts/new_from_template.py effect my_effect
 
-Writes music/pieces/<name>.yml or music/instruments/<name>.yml from music/templates/<kind>.yml,
+Writes music/pieces/<name>.yml, music/instruments/<name>.yml or music/effects/<name>.yml from music/templates/<kind>.yml,
 without the template's header comment. `make new-piece NAME=…` and
-`make new-instrument NAME=…` call it.
+`make new-instrument NAME=…` and `make new-effect NAME=…` call it.
 """
 
 import re
@@ -13,7 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DIRECTORIES = {"piece": ROOT / "music" / "pieces", "instrument": ROOT / "music" / "instruments"}
+DIRECTORIES = {"piece": ROOT / "music" / "pieces", "instrument": ROOT / "music" / "instruments", "effect": ROOT / "music" / "effects"}
 VALID_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 # the template's header explains how to use the template; the new file starts after it
 HEADER_END = "# --- end of template header ---\n"

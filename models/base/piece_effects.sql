@@ -14,3 +14,4 @@ select
 from piece_scores,
     json_each(piece_scores.score -> 'effects') as named_effects,
     json_each(named_effects.value) as effect
+where effect.key != 'description'

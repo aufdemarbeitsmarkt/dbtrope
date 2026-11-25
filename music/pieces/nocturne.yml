@@ -7,7 +7,7 @@ meter: 3/4
 key: {root: A, scale: minor}
 seed: 7
 instruments:
-  hall: {use: soft_pad, effects: {reverb: {seconds: 2.5, mix: 0.35}}, pan: -0.2}
+  hall: {use: soft_pad, effects: {reverb: {use: hall, mix: 0.35}}, pan: -0.2}
   bell: {use: glass, effects: {delay: {seconds: 0.536, feedback: 0.35, repeats: 3}}, pan: 0.2}
 motifs:
   theme:
