@@ -11,6 +11,6 @@ data_tests:
 
   - name: named_effects_avoid_effect_names
     description: >
-      Fails for each piece's named effect, or stored effect in effects/,
+      Fails for each piece's named effect, or stored effect in music/effects/,
       named for an effect such as delay or reverb. Those names are reserved,
       since use: delay would read as the effect rather than a preset.
