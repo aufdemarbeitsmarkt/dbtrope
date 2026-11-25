@@ -279,7 +279,7 @@ A model's layer is the first directory under `models/`. Pieces and stored instru
 | Layer | Holds | May read |
 |---|---|---|
 | `base/` | Theory tables from seeds; piece and instrument files read and flattened into rows | base, seeds |
-| `intermediate/` | The steps that build the score: improvisation, pitch, sequencing | base, intermediate, seeds |
+| `intermediate/` | The steps that build the score: improvisation, pitch, sequencing; one model per effect's taps | base, intermediate, seeds |
 | `core/` | The objects the rest of the project reads: sections, the ensemble, the score | base, intermediate, core, seeds |
 | `render/` | Partials, samples, effects, WAV and MIDI output | core, render |
 
