@@ -2,7 +2,7 @@
 #
 #     make new-effect NAME=my_effect
 #
-# which writes effects/my_effect.yml from everything below the header line.
+# which writes music/effects/my_effect.yml from everything below the header line.
 # Any instrument can then start from it with `effects: {reverb: {use: my_effect}}`,
 # changing settings beside use:. Keep one effect, and delete the other.
 # --- end of template header ---

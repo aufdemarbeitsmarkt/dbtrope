@@ -12,7 +12,7 @@ named_effects as (
     union all
 
     select
-        'effects/' as piece_id,
+        'music/effects/' as piece_id,
         named_effect
     from {{ ref('effects') }}
 )

@@ -1,7 +1,7 @@
 {% docs __overview__ %}
 # dbtrope
 
-A dbt project that composes music. Each piece is a YAML file in `pieces/`;
+A dbt project that composes music. Each piece is a YAML file in `music/pieces/`;
 `dbt build` reads it, turns it into a score with SQL,
 synthesises it sample by sample in DuckDB and writes `output/<piece>.wav`
 and `output/<piece>.mid`.
@@ -13,9 +13,9 @@ and `output/<piece>.mid`.
   `piece_files` shows which files were read; the build renders what the
   piece var names (`--vars '{piece: nocturne}'`, or `all`).
 - **Instruments** are rows of `instruments`, one per file in
-  `instruments/`. `piece_instruments` shows which instruments each piece
+  `music/instruments/`. `piece_instruments` shows which instruments each piece
   uses and how each was resolved.
-- **Stored effects** are rows of `effects`, one per file in `effects/`.
+- **Stored effects** are rows of `effects`, one per file in `music/effects/`.
   `piece_instrument_effects` shows each instrument's effects, and which
   named effect each started from.
 - **The score** is `score_notes`: one row per sounding note,
