@@ -4,8 +4,11 @@ macros:
       Fails for each combination of the columns in combination_of_columns
       that appears more than once.
     arguments:
+      - name: model
+        type: relation
+        description: the model the test is on
       - name: combination_of_columns
-        type: list
+        type: list[string]
         description: the columns that together key the model
 
   - name: test_expression_is_true
@@ -13,9 +16,12 @@ macros:
       Fails for each row where `<column> <expression>` is not true. On a
       model rather than a column, the expression is checked on its own.
     arguments:
+      - name: model
+        type: relation
+        description: the model the test is on
       - name: expression
         type: string
         description: a SQL expression, prefixed with the column when the test is on a column
       - name: column_name
-        type: string
+        type: optional[string]
         description: the column the test is on, if any
