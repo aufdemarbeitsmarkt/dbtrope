@@ -1,4 +1,4 @@
-with instruments as (
+with effects_by_instrument as (
     select
         piece_id,
         instrument_name,
@@ -19,13 +19,13 @@ named_effects as (
 -- an instrument has an effect when its key is under effects:, even as {}; a piece turns one off with delay: null
 instrument_effects as (
     select
-        instruments.piece_id,
-        instruments.instrument_name,
-        instrument_effects.key as effect_name,
-        instrument_effects.value as resolved_settings,
-        instruments.declared_effects -> instrument_effects.key as declared_settings
-    from instruments,
-        json_each(instruments.effects) as instrument_effects
+        effects_by_instrument.piece_id,
+        effects_by_instrument.instrument_name,
+        effect.key as effect_name,
+        effect.value as resolved_settings,
+        effects_by_instrument.declared_effects -> effect.key as declared_settings
+    from effects_by_instrument,
+        json_each(effects_by_instrument.effects) as effect
 ),
 
 /*
