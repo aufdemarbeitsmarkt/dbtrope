@@ -151,8 +151,11 @@ Sort lists of values (`in (…)`, `case` branches that bucket categories) alphan
     or that don't fit on one line, use C-style delimiters.
 */
 
-{# Comments about Jinja use Jinja delimiters, so they stay out of compiled SQL. #}
+{# Comments about the Jinja itself use Jinja delimiters, so they stay out of compiled SQL. #}
 ```
+
+- A comment about what the SQL does uses `--` or `/* */`, even above a `{% set %}`, so whoever reads the compiled SQL sees it too. Jinja delimiters are only for comments about the Jinja: how a loop, macro or var works.
+- A comment explaining a constant set in Jinja goes beside the SQL that uses it, and can show the value: `-- {{ reverb_tap_count }} reflections …`.
 
 - Put comments above the line they describe.
 - Name what you are talking about, such as the column, CTE or expression. A detached "this" means nothing after code moves.
@@ -214,7 +217,7 @@ join piece_tempos
 ## Jinja
 
 - Use `{% set %} … {% endset %}` for long SQL fragments; this keeps syntax highlighting and avoids nested quotes.
-- Explain Jinja with `{# #}` comments.
+- Explain the Jinja itself with `{# #}` comments; explain the SQL it produces with SQL comments.
 - Name repeated window clauses once:
 
 ```sql

@@ -7,11 +7,11 @@
     model only unioning them and applying the written rhythm. Then one
     method's failure or rework doesn't touch the others.
 */
-{#-
+/*
     Randomness comes from hash() of the voice's seed, the piece, section and
     voice, and an index, so a rebuild plays the same notes and two voices
     with one seed still improvise differently.
-#}
+*/
 {%- set voice_order %}
     partition by
         piece_id,

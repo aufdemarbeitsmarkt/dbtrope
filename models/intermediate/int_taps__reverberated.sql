@@ -2,9 +2,7 @@
 {%- set effect_name = 'reverb' %}
 {{ config(meta={'effect_name': effect_name}) }}
 
-{#- Enough reflections that the reverb blurs rather than echoes, few enough to stay quick. #}
 {%- set reverb_tap_count = 24 %}
-{#- The first reflection arrives this long after the dry sound. #}
 {%- set reverb_predelay_seconds = 0.02 %}
 
 with reverbs as (
@@ -23,6 +21,10 @@ with reverbs as (
     at one pitch, alternating between the channels for width, and fading by
     60 dB (a factor of 1000) by the end. The irregularity comes from hash(),
     so it is the same on every build.
+
+    {{ reverb_tap_count }} reflections are enough that the reverb blurs rather
+    than echoes, and few enough to stay quick. The first arrives
+    {{ reverb_predelay_seconds }} seconds after the dry sound.
 */
 reverb_tap_times as (
     select

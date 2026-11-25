@@ -1,5 +1,4 @@
 {%- set sample_rate = var('sample_rate') %}
-{#- Normalise each piece to just under full scale (about -1 dBFS). #}
 {%- set peak_amplitude = 0.89 %}
 
 with instrument_samples as (
@@ -96,7 +95,11 @@ dense_samples as (
         and summed_samples.sample_index = all_samples.sample_index
 ),
 
--- both channels share one gain, so normalising keeps the stereo balance
+/*
+    Each piece is normalised to a peak of {{ peak_amplitude }}, just under full
+    scale (about -1 dBFS). Both channels share one gain, so normalising keeps
+    the stereo balance.
+*/
 piece_gains as (
     select
         piece_id,
