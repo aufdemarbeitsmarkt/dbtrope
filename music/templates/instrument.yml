@@ -2,7 +2,7 @@
 #
 #     make new-instrument NAME=my_instrument
 #
-# which writes instruments/my_instrument.yml from everything below the header
+# which writes music/instruments/my_instrument.yml from everything below the header
 # line. Any piece can then play it with `instrument: my_instrument`, or start
 # from it with `use: my_instrument`.
 # --- end of template header ---
