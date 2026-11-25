@@ -418,6 +418,12 @@ models:
         description: >
           The instrument's effects as a JSON object keyed by effect name,
           after the piece's overrides; null when it has none.
+      - name: declared_effects
+        description: >
+          The effects the piece itself writes for the instrument, before the
+          stored instrument's; null when it writes none.
+          piece_instrument_effects uses it to start a named effect from the
+          piece's own keys.
 
   - name: piece_instrument_partials
     description: >
@@ -450,14 +456,41 @@ models:
               arguments:
                 expression: ">= 0"
 
+  - name: piece_effects
+    description: >
+      The effects a piece names for its instruments to share, one row per
+      piece_id and named_effect. Written under the piece's top-level
+      effects:, as hall: {reverb: {seconds: 2.5}}; an instrument uses one
+      with effects: {reverb: {use: hall}}.
+    data_tests:
+      # a named effect holding two effects shows up here twice
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, named_effect]
+    columns:
+      - name: piece_id
+        data_tests: [not_null]
+      - name: named_effect
+        description: The effect's name under the piece's effects:, such as hall.
+        data_tests: [not_null]
+      - name: effect_name
+        description: Which effect it is, such as reverb.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [delay, reverb]
+      - name: effect_settings
+        description: The effect's settings as JSON.
+
   - name: piece_instrument_effects
     description: >
       Each effect on each piece's instruments, one row per piece_id,
       instrument_name and effect_name, with the effect's settings as JSON.
       An instrument has an effect when its name is under effects:, even as
       {}; a piece's effects: {delay: null} turns off a stored instrument's.
-      Each effect's model in intermediate/ reads its own rows and fills in
-      defaults.
+      An effect with use: starts from the piece's named effect in
+      piece_effects. Each effect's model in intermediate/ reads its own rows
+      and fills in defaults.
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -475,8 +508,23 @@ models:
           - accepted_values:
               arguments:
                 values: [delay, reverb]
+      - name: named_effect
+        description: The piece's named effect it uses, from use:; null when it uses none.
+      - name: is_resolved
+        description: >
+          False when use: names an effect the piece doesn't define, or one
+          of a different kind, such as a named reverb under delay:. The
+          failing rows name the piece and the instrument.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "= true"
       - name: effect_settings
-        description: The effect's settings as JSON; {} for all defaults.
+        description: >
+          The effect's settings as JSON; {} for all defaults. With use:, the
+          named effect's settings with the instrument's own on top. When the
+          piece writes use:, a stored instrument's settings for that effect
+          are dropped.
 
 unit_tests:
   - name: short_lists_repeat_and_empty_lists_are_unset
@@ -538,3 +586,30 @@ unit_tests:
         - {instrument_name: bell, instrument_source: inline, library_instrument_name: null, is_resolved: true, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}
         - {instrument_name: pad, instrument_source: library, library_instrument_name: pad, is_resolved: true, attack_seconds: 0.2, sustain_level: 0.7, release_seconds: 0.4, pan: 0, lowest_note_name: C2}
         - {instrument_name: missing, instrument_source: library, library_instrument_name: missing, is_resolved: false, attack_seconds: 0.01, sustain_level: 1, release_seconds: 0.05, pan: 0, lowest_note_name: null}
+
+  - name: named_effects_take_the_instruments_settings_on_top
+    model: piece_instrument_effects
+    given:
+      - input: ref('piece_instruments')
+        format: sql
+        rows: |
+          select * from (values
+              -- uses hall and lowers its mix
+              ('p', 'pad', '{"reverb": {"use": "hall", "mix": 0.1}}'::json, '{"reverb": {"use": "hall", "mix": 0.1}}'::json),
+              -- the stored reverb's seconds give way to hall's when the piece writes use:
+              ('p', 'bell', '{"reverb": {"use": "hall", "seconds": 0.5}}'::json, '{"reverb": {"use": "hall"}}'::json),
+              -- no use: stays as written
+              ('p', 'lead', '{"delay": {"seconds": 0.3}}'::json, null::json),
+              -- a hall that isn't a delay, and a name the piece doesn't define
+              ('p', 'wrong', '{"delay": {"use": "hall"}, "reverb": {"use": "cave"}}'::json, '{"delay": {"use": "hall"}, "reverb": {"use": "cave"}}'::json)
+          ) as instruments (piece_id, instrument_name, effects, declared_effects)
+      - input: ref('piece_effects')
+        rows:
+          - {piece_id: p, named_effect: hall, effect_name: reverb, effect_settings: '{"seconds": 2.5, "mix": 0.3}'}
+    expect:
+      rows:
+        - {instrument_name: pad, effect_name: reverb, named_effect: hall, is_resolved: true, effect_settings: '{"seconds":2.5,"mix":0.1}'}
+        - {instrument_name: bell, effect_name: reverb, named_effect: hall, is_resolved: true, effect_settings: '{"seconds":2.5,"mix":0.3}'}
+        - {instrument_name: lead, effect_name: delay, named_effect: null, is_resolved: true, effect_settings: '{"seconds":0.3}'}
+        - {instrument_name: wrong, effect_name: delay, named_effect: hall, is_resolved: false, effect_settings: '{"seconds":2.5,"mix":0.3}'}
+        - {instrument_name: wrong, effect_name: reverb, named_effect: cave, is_resolved: false, effect_settings: '{}'}
