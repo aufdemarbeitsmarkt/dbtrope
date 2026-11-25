@@ -1,3 +1,10 @@
+{#-
+    This is the largest model: it turns chords into degrees, degrees and note
+    names into MIDI notes, and inverts and transposes voices. The next pitch
+    feature (a new pitch kind, chord inversions or voicings) should split it:
+    chord_degrees and chord_tones into their own intermediate model that
+    turns each chord event into degree tones, leaving this one to pitch them.
+#}
 {#- An inverted voice mirrors its pitches around its first written pitch, so every window here runs over a voice's tones in written order. #}
 {%- set voice_tone_order %}
     partition by
