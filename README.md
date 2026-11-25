@@ -306,7 +306,7 @@ Pieces, instruments and effects are plain YAML files, not dbt models: there's no
 ## How a note becomes sound
 
 1. `base/piece_files`, `base/instruments` and `base/effects` read the piece, instrument and effect files into JSON. The rest of `base/` flattens each piece into `pieces`, `piece_motifs`, `piece_sections`, `piece_form`, `piece_voices` and `piece_voice_events`, and resolves its instruments into `piece_instruments`, `piece_instrument_partials` and `piece_instrument_effects`, starting any effect with `use:` from the piece's named effects in `piece_effects` or the stored ones in `effects`.
-2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section. Each effect has its own model: `int_taps__delayed` and `int_taps__reverberated` turn an instrument's delay and reverb settings into taps, delayed and scaled copies of its sound.
+2. In `intermediate/`, `int_events__improvised` replaces an improvising voice's pitches with its permutation or markov walk. `int_notes__pitched` turns note names, degrees and chords into MIDI numbers and frequencies, using `base/note_names` and `base/scale_semitones` and inverting where asked. `int_events__sequenced` applies repeats, retrograde and augmentation and places each event within its section. Each effect has its own model in `intermediate/effects/`: `int_taps__delayed` and `int_taps__reverberated` turn an instrument's delay and reverb settings into taps, delayed and scaled copies of its sound.
 3. `core/` holds what the rest of the project reads. `sections` lays the sections out along the form. `score_notes` places each event in its section and holds the score: one row per sounding tone, with its instrument, `frequency_hz`, `velocity`, `start_seconds` and `duration_seconds`. `ensemble`, `instrument_partials` and `instrument_effect_taps` hold each piece's instruments with their ranges, harmonics and effects.
 4. `note_partials` joins each tone to its instrument's harmonics, envelope and pan.
 5. `instrument_samples` expands each partial to one row per sample with `unnest(range(…))`, evaluates `sin(2π·f·t)` under its ADSR envelope, pans it with equal-power gains and sums it by instrument and `sample_index`.
@@ -333,6 +333,7 @@ seeds/                 seed_<name>.csv: music theory reference tables
 models/
   base/                theory tables from seeds; piece and instrument files read and flattened into rows
   intermediate/        int_{topic}__{transformation}: the steps that build the score
+    effects/           one model per effect, each declaring its name and returning the same columns
   core/                what render/ and analyses read: sections, the ensemble, the score
   render/              partials, mixed samples, effects, WAV and MIDI output
   */_<directory>.yml   one file documenting and testing every model in the directory

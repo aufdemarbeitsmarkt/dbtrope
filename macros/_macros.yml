@@ -11,7 +11,7 @@ macros:
   - name: effect_models
     description: >
       Every effect, as a map from its name to the model that builds its
-      taps. Each effect model in intermediate/ declares its name with
+      taps. Each effect model in intermediate/effects/ declares its name with
       config(meta={'effect_name': ...}), beside the logic that reads its
       settings, so adding an effect needs no list of names to keep up.
       The is_effect_name test, the named_effects_avoid_effect_names test and

@@ -1,0 +1,94 @@
+# Every effect model: one per effect, each turning its instruments' settings
+# into taps, delayed and scaled copies of the sound. Each declares its name with
+# config(meta={'effect_name': ...}), and dbt_project.yml enforces a contract
+# here, so every effect returns exactly the columns below; core/instrument_effect_taps
+# unions them. Models are in lineage order.
+
+models:
+  - name: int_taps__delayed
+    description: >
+      Each echo of each instrument's delay, one row per piece_id,
+      instrument_name and tap_index. Echo n arrives n times seconds after
+      the dry sound at feedback to the power n in both channels. Defaults:
+      seconds 0.25, feedback 0.4, repeats 3.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, tap_index]
+      - expression_is_true:
+          arguments:
+            expression: "left_gain < 1 and right_gain < 1"
+          description: Feedback is below 1, so echoes fade.
+    columns: &effect_tap_columns
+      - name: piece_id
+        data_type: varchar
+        data_tests: [not_null]
+      - name: instrument_name
+        data_type: varchar
+        data_tests: [not_null]
+      - name: effect_name
+        data_type: varchar
+        description: The name the model declares, such as delay.
+        data_tests: [not_null, is_effect_name]
+      - name: tap_index
+        data_type: bigint
+        description: The tap's number within its effect, from 1.
+        data_tests: [not_null]
+      - name: delay_seconds
+        data_type: double
+        description: How long after the dry sound the tap arrives.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: left_gain
+        data_type: double
+        description: The tap's level in the left channel.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: right_gain
+        data_type: double
+        description: The tap's level in the right channel.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+  - name: int_taps__reverberated
+    description: >
+      Each reflection of each instrument's reverb, one row per piece_id,
+      instrument_name and tap_index. 24 reflections are spread over the
+      reverb's seconds after a 20 ms predelay, alternating between the
+      channels (odd tap_index left, even right) and fading by 60 dB by the
+      end, at mix against the dry sound. Defaults: seconds 1.5, mix 0.25.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [piece_id, instrument_name, tap_index]
+    columns: *effect_tap_columns
+
+unit_tests:
+  - name: delays_echo_at_falling_levels
+    model: int_taps__delayed
+    given:
+      - input: ref('piece_instrument_effects')
+        format: sql
+        rows: |
+          select
+              'p' as piece_id,
+              'echoing' as instrument_name,
+              'delay' as effect_name,
+              '{"seconds": 0.5, "feedback": 0.5, "repeats": 2}'::json as effect_settings
+          union all
+          select
+              'p' as piece_id,
+              'roomy' as instrument_name,
+              'reverb' as effect_name,
+              '{}'::json as effect_settings
+    expect:
+      rows:
+        # only the delay makes echoes; the reverb is another model's
+        - {instrument_name: echoing, effect_name: delay, tap_index: 1, delay_seconds: 0.5, left_gain: 0.5, right_gain: 0.5}
+        - {instrument_name: echoing, effect_name: delay, tap_index: 2, delay_seconds: 1, left_gain: 0.25, right_gain: 0.25}

@@ -107,8 +107,8 @@ models:
       piece_id, instrument_name, effect_name and tap_index: the dry sound,
       each echo of its delay and each reflection of its reverb, with how
       late it arrives and its gain in each channel. Every instrument has
-      its dry tap; each effect's taps come from its own intermediate model
-      (int_taps__delayed, int_taps__reverberated). Effects here are all
+      its dry tap; each effect's taps come from its own model in
+      intermediate/effects/ (int_taps__delayed, int_taps__reverberated). Effects here are all
       delayed, scaled copies of the sound; one that reshapes the samples
       themselves, such as a filter or distortion, would be a step in
       render/ instead.
