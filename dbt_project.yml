@@ -19,8 +19,8 @@ vars:
   sample_rate: 22050
   output_dir: output
   # where piece and stored instrument files are read from
-  pieces_dir: pieces
-  instruments_dir: instruments
+  pieces_dir: music/pieces
+  instruments_dir: music/instruments
   # what to render: a piece name, a path to a .yml file, or all. dbt build and
   # dbt run stop unless it's given: --vars '{piece: nocturne}' (see macros/require_piece.sql)
   piece: null
@@ -36,3 +36,9 @@ models:
       +materialized: view
     render:
       +materialized: table
+
+flags:
+  # dbt reads a generic test's arguments from YAML but not from its Jinja, so
+  # every documented argument in tests/generic/_generic.yml warns that the count
+  # doesn't match. Turn this back on once dbt checks generic tests correctly.
+  validate_macro_args: false
