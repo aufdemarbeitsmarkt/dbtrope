@@ -12,7 +12,7 @@ Requires Python 3.10+.
 make install   # create .venv and install dbt-duckdb
 make build PIECE=nocturne            # check layer rules, then build and render one piece
 make build PIECE=~/sketches/idea.yml # a piece file from anywhere
-make build PIECE=all                 # every piece in pieces/
+make build PIECE=all                 # every piece in music/pieces/
 ```
 
 `make build PIECE=…` runs `dbt build --vars '{piece: …}'`; the var takes a piece name, a path to a `.yml` file, or `all`. It's required: `dbt build` and `dbt run` stop straight away without it, so a project with a hundred pieces never renders them all by accident. Each piece is written to `output/<piece>.wav`, and its score to `output/<piece>.mid` for a DAW or notation program. The `render_wav` and `render_midi` tables list what was written.
@@ -21,7 +21,7 @@ make build PIECE=all                 # every piece in pieces/
 
 This walks from an empty piece to one that uses most of dbtrope, building after each step. Every key it uses is described under [Writing a piece](#writing-a-piece).
 
-**1. A melody.** A piece is one YAML file in `pieces/`, and its file name is its name. Create `pieces/first_tune.yml`:
+**1. A melody.** A piece is one YAML file in `music/pieces/`, and its file name is its name. Create `music/pieces/first_tune.yml`:
 
 ```yaml
 description: My first piece.
@@ -99,13 +99,13 @@ Each build gives the same notes. Change `seed` for another take.
 The quickest start is a template:
 
 ```sh
-make new-piece NAME=my_piece            # pieces/my_piece.yml
-make new-instrument NAME=my_instrument  # instruments/my_instrument.yml
-make new-effect NAME=my_effect          # effects/my_effect.yml
+make new-piece NAME=my_piece            # music/pieces/my_piece.yml
+make new-instrument NAME=my_instrument  # music/instruments/my_instrument.yml
+make new-effect NAME=my_effect          # music/effects/my_effect.yml
 make build PIECE=my_piece               # writes output/my_piece.wav and .mid
 ```
 
-The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `templates/`.
+The new piece uses every feature below, with a comment on each key, and renders as-is. The templates are in `music/templates/`.
 
 ### Examples
 
@@ -117,12 +117,12 @@ The new piece uses every feature below, with a comment on each key, and renders 
 | `variations` | a theme played backwards, upside down, twice as fast and twice as slow |
 | `nocturne` | a markov-improvised melody, an inverted and an augmented theme, delay and reverb |
 
-Each is a `.yml` in `pieces/`; after `make build PIECE=<piece>` (or `PIECE=all`), listen to `output/<piece>.wav`.
+Each is a `.yml` in `music/pieces/`; after `make build PIECE=<piece>` (or `PIECE=all`), listen to `output/<piece>.wav`.
 
-A piece is a YAML file in `pieces/`. The file's name is the piece's name, so `pieces/ditty.yml` renders to `output/ditty.wav`.
+A piece is a YAML file in `music/pieces/`. The file's name is the piece's name, so `music/pieces/ditty.yml` renders to `output/ditty.wav`.
 
 ```yaml
-# pieces/ditty.yml
+# music/pieces/ditty.yml
 description: A short tune in C major for two voices.
 tempo: 112          # quarter-note beats per minute
 meter: 4/4
@@ -144,7 +144,7 @@ voices:
 A voice can be written in scale degrees or chords instead of note names, relative to the piece's `key`:
 
 ```yaml
-# pieces/lullaby.yml (excerpt)
+# music/pieces/lullaby.yml (excerpt)
 tempo: 96
 meter: 3/4
 key: {root: D, scale: dorian}
@@ -223,10 +223,10 @@ voices:
 
 ### Instruments
 
-An instrument is a set of harmonics and an envelope. Store one as a YAML file in `instruments/` to use it from any piece; the file's name is the instrument's name:
+An instrument is a set of harmonics and an envelope. Store one as a YAML file in `music/instruments/` to use it from any piece; the file's name is the instrument's name:
 
 ```yaml
-# instruments/soft_pad.yml
+# music/instruments/soft_pad.yml
 description: A warm pad with a slow attack and a long release, for chords.
 partials: [[1, 0.5], [2, 0.25], [3, 0.12]]   # [frequency ratio, amplitude]
 adsr: {a: 0.2, d: 0.1, s: 0.7, r: 0.4}       # seconds, seconds, level, seconds
@@ -239,11 +239,11 @@ The library has `sine` (the default for voices without an instrument), `pluck`, 
 A voice names its instrument with `instrument:`. The name is looked up in this order:
 
 1. **Declared in the piece** under `instruments:`. With `use:`, it starts from that stored instrument and replaces only the keys given, down to single `adsr` values. Without `use:`, it is an inline instrument for that piece only.
-2. **Stored** in `instruments/`, used as-is.
+2. **Stored** in `music/instruments/`, used as-is.
 3. **Neither**: the build fails a test on `piece_instruments` whose failing row names the piece and the missing instrument.
 
 ```yaml
-# pieces/lullaby.yml (excerpt)
+# music/pieces/lullaby.yml (excerpt)
 instruments:
   soft: {use: soft_pad, pan: -0.3, adsr: {r: 0.8}}   # stored, two settings changed
   bell:                                              # inline, this piece only
@@ -285,10 +285,10 @@ instruments:
   ```
 
   When the piece writes `use:`, the stored instrument's own settings for that effect are dropped, so `bell` gets hall's 2.5 s rather than glass's 1.2 s. The build fails if `use:` names an effect the piece doesn't define, or one of another kind, such as a named reverb under `delay:`. `round_in_f` shares one echo between its two voices this way.
-- Effects used across pieces are stored in `effects/`, one per file, like instruments. The file's name is the name `use:` gives; a piece's own named effect wins over a stored one of the same name:
+- Effects used across pieces are stored in `music/effects/`, one per file, like instruments. The file's name is the name `use:` gives; a piece's own named effect wins over a stored one of the same name:
 
   ```yaml
-  # effects/hall.yml
+  # music/effects/hall.yml
   description: A large hall's long, soft tail, for pads and slow melodies.
   reverb: {seconds: 2.5, mix: 0.3}
   ```
@@ -300,7 +300,7 @@ Every build reads the whole instrument and effect libraries, so after changing a
 
 ### How files get into the build
 
-Pieces and instruments are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Two Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads the piece the `piece` var names, or every `.yml` in the `pieces_dir` var for `piece: all`, and `instruments` reads every `.yml` in the `instruments_dir` var. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
+Pieces, instruments and effects are plain YAML files, not dbt models: there's nothing to register after adding, renaming or removing one. Three Python models in `base/` read them with PyYAML (which dbt already installs): `piece_files` reads the piece the `piece` var names, or every `.yml` in the `pieces_dir` var for `piece: all`, and `instruments` and `effects` read every `.yml` in the `instruments_dir` and `effects_dir` vars. Everything after that is SQL. dbt doesn't watch the files, so state-based selection such as `state:modified` won't notice an edited piece; build it by name instead.
 
 ## How a note becomes sound
 
@@ -323,8 +323,11 @@ Pieces and instruments are plain YAML files, not dbt models: there's nothing to 
 ## Layout
 
 ```
-pieces/                one .yml per composition
-instruments/           one .yml per stored instrument
+music/
+  pieces/              one .yml per composition
+  instruments/         one .yml per stored instrument
+  effects/             one .yml per stored effect
+  templates/           commented starting points for a piece, an instrument and an effect
 seeds/                 seed_<name>.csv: music theory reference tables
 models/
   base/                theory tables from seeds; piece and instrument files read and flattened into rows
@@ -335,7 +338,6 @@ models/
 analyses/score_listing.sql  a piece's notes by bar and beat, for make score
 scripts/check_layers.py  enforces which layers may read which, model naming and where models are documented
 scripts/new_from_template.py creates a piece or instrument file from its template
-templates/             commented starting points for a piece and an instrument
 docs/sql_style.md      how SQL is written here
 ```
 
@@ -347,7 +349,8 @@ docs/sql_style.md      how SQL is written here
 | Sample rate | `sample_rate` var | `22050` (use `44100` for final renders) |
 | Output folder | `output_dir` var | `output` |
 | Piece to render | `piece` var: a name, a path to a `.yml` file, or `all` | none: required by `dbt build` and `dbt run` |
-| Piece folder | `pieces_dir` var | `pieces` |
-| Instrument folder | `instruments_dir` var | `instruments` |
+| Piece folder | `pieces_dir` var | `music/pieces` |
+| Instrument folder | `instruments_dir` var | `music/instruments` |
+| Effect folder | `effects_dir` var | `music/effects` |
 
 Override vars per run: `dbt build --vars '{piece: nocturne, sample_rate: 44100}'`.

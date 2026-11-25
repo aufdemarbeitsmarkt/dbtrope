@@ -274,7 +274,7 @@ qualify row_number() over (
 
 ## Layers
 
-A model's layer is the first directory under `models/`. Pieces, stored instruments and stored effects aren't models: they are YAML files in `pieces/`, `instruments/` and `effects/` at the project root, which `base/piece_files`, `base/instruments` and `base/effects` read. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
+A model's layer is the first directory under `models/`. Pieces, stored instruments and stored effects aren't models: they are YAML files in `music/pieces/`, `music/instruments/` and `music/effects/`, which `base/piece_files`, `base/instruments` and `base/effects` read. `make check` enforces these rules from `target/manifest.json` using `scripts/check_layers.py`.
 
 | Layer | Holds | May read |
 |---|---|---|

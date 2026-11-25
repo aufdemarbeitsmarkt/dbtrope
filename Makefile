@@ -14,7 +14,7 @@ $(VENV)/.installed: pyproject.toml
 	$(BIN)/pip install -e .
 	touch $@
 
-# make build PIECE=nocturne (or PIECE=path/to/piece.yml) renders one piece, PIECE=all every piece in pieces/.
+# make build PIECE=nocturne (or PIECE=path/to/piece.yml) renders one piece, PIECE=all every piece in music/pieces/.
 # dbt build stops without PIECE, so nothing renders every piece by accident (macros/require_piece.sql).
 PIECE_VARS := $(if $(PIECE),--vars '{piece: $(PIECE)}')
 
