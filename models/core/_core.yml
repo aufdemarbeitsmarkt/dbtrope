@@ -122,11 +122,11 @@ models:
       - name: instrument_name
         data_tests: [not_null]
       - name: effect_name
-        description: dry, delay or reverb.
+        description: dry, or the name of an effect such as delay or reverb.
         data_tests:
-          - accepted_values:
+          - is_effect_name:
               arguments:
-                values: [delay, dry, reverb]
+                also: [dry]
       - name: tap_index
         description: The tap's position within its effect, from 1; 0 for the dry sound.
         data_tests: [not_null]

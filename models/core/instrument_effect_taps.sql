@@ -7,6 +7,11 @@
     'int_taps__delayed',
     'int_taps__reverberated',
 ] %}
+{#- An effect model missing from the list would have its taps left out without a word, so stop instead. #}
+{%- set unlisted_effect_models = effect_models().values() | reject('in', effect_tap_models) | list %}
+{%- if unlisted_effect_models %}
+    {{ exceptions.raise_compiler_error('Add ' ~ unlisted_effect_models | join(', ') ~ ' to effect_tap_models in instrument_effect_taps.') }}
+{%- endif %}
 
 with instruments as (
     select

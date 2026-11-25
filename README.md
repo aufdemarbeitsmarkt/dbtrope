@@ -294,7 +294,7 @@ instruments:
   ```
 
   `hall`, `room` (a short reverb) and `slapback` (one quick echo) are stored now; `nocturne` uses `hall` with its mix raised. `make new-effect NAME=…` starts a new one. `piece_instrument_effects` shows where each instrument's effects came from.
-- Effect names such as `delay` and `reverb` are reserved: a named or stored effect can't take one, so `use: delay` never reads as the effect itself. The effects are listed in `seeds/seed_effect_names.csv`.
+- Effect names such as `delay` and `reverb` are reserved: a named or stored effect can't take one, so `use: delay` never reads as the effect itself. Each effect's model declares its name, so there's no list to keep up.
 - The piece lasts until the last echo or reflection fades.
 
 Every build reads the whole instrument and effect libraries, so after changing a stored instrument or effect, rebuild the pieces that use it. `piece_instruments` shows which pieces use which instruments.
