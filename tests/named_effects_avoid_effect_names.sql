@@ -1,6 +1,6 @@
--- the names the effect models declare (macros/effect_models.sql)
 with effect_names as (
-    select unnest({{ effect_models().keys() | sort | list }}::varchar[]) as effect_name
+    select effect_name
+    from {{ ref('effect_registry') }}
 ),
 
 named_effects as (

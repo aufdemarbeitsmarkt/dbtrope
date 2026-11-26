@@ -1,9 +1,10 @@
 {#-
-    Every effect, as a map from its name to the model that builds its taps.
-    The effect models are the models in models/intermediate/effects/, and each
-    declares its name with config(meta={'effect_name': ...}), so the name
-    lives beside the effect's logic. The graph is only filled in when dbt
-    executes, so this is empty while parsing.
+    Every effect, as a map from its name to the graph node of the model that
+    builds its taps. The effect models are the models in
+    models/intermediate/effects/, and each declares its name with
+    config(meta={'effect_name': ...}), so the name lives beside the effect's
+    logic. The graph is only filled in when dbt executes, so this is empty
+    while parsing.
 #}
 {% macro effect_models() %}
     {%- set effect_models = {} %}
@@ -13,7 +14,7 @@
             {%- if not effect_name %}
                 {{ exceptions.raise_compiler_error(node.name ~ " is an effect model, so declare its name with config(meta={'effect_name': ...}).") }}
             {%- endif %}
-            {%- do effect_models.update({effect_name: node.name}) %}
+            {%- do effect_models.update({effect_name: node}) %}
         {%- endfor %}
     {%- endif %}
     {{ return(effect_models) }}

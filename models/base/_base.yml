@@ -480,6 +480,24 @@ models:
               arguments:
                 expression: ">= 0"
 
+  - name: effect_registry
+    description: >
+      Every effect an instrument can have, one row per effect_name: the
+      effect's name, the model in intermediate/effects/ that builds its taps
+      and that model's description. Each effect model declares its name with
+      config(meta={'effect_name': ...}), and macros/effect_models.sql reads
+      them from dbt's graph, so there's no list to keep up. An effect name
+      not here fails the build, and named and stored effects can't take one.
+    columns:
+      - name: effect_name
+        description: The name instruments list the effect by under effects:, such as delay.
+        data_tests: [unique, not_null]
+      - name: model_name
+        description: The effect model, such as int_taps__delayed.
+        data_tests: [unique, not_null]
+      - name: description
+        description: The effect model's description, with its settings and defaults.
+
   - name: piece_effects
     description: >
       The effects a piece names for its instruments to share, one row per
@@ -500,7 +518,10 @@ models:
       - name: effect_name
         description: Which effect it is, such as reverb.
         data_tests:
-          - is_effect_name
+          - relationships:
+              arguments:
+                to: ref('effect_registry')
+                field: effect_name
       - name: effect_settings
         description: The effect's settings as JSON.
 
@@ -527,7 +548,10 @@ models:
           The effect's key under effects:. A name with no effect model
           fails here, naming the piece and instrument.
         data_tests:
-          - is_effect_name
+          - relationships:
+              arguments:
+                to: ref('effect_registry')
+                field: effect_name
       - name: named_effect
         description: The named effect it uses, from use:; null when it uses none.
       - name: named_effect_source
