@@ -29,7 +29,12 @@ models:
       - name: effect_name
         data_type: varchar
         description: The name the model declares, such as delay.
-        data_tests: [not_null, is_effect_name]
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('effect_registry')
+                field: effect_name
       - name: tap_index
         data_type: bigint
         description: The tap's number within its effect, from 1.

@@ -124,9 +124,12 @@ models:
       - name: effect_name
         description: dry, or the name of an effect such as delay or reverb.
         data_tests:
-          - is_effect_name:
+          - relationships:
               arguments:
-                also: [dry]
+                to: ref('effect_registry')
+                field: effect_name
+              config:
+                where: "effect_name != 'dry'"
       - name: tap_index
         description: The tap's position within its effect, from 1; 0 for the dry sound.
         data_tests: [not_null]
